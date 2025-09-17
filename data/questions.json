@@ -45,19 +45,19 @@
       {
         "question": "IMP1: How significant are the direct economic losses that the pest would cause in Finland?",
         "options": {
-          "a": { "text": "It would not cause losses in Finland", "points": 0 },
-          "b": { "text": "<0.05 million € per year", "points": 0.5 },
-          "c": { "text": "0.05–0.1 million € per year", "points": 1 },
-          "d": { "text": "0.1–0.2 million € per year", "points": 1.5 },
-          "e": { "text": "0.2–0.4 million € per year", "points": 2 },
-          "f": { "text": "0.4–0.8 million € per year", "points": 2.5 },
-          "g": { "text": "0.8–1.5 million € per year", "points": 3 },
-          "h": { "text": "1.5–3 million € per year", "points": 3.5 },
-          "i": { "text": "3–6 million € per year", "points": 4 },
-          "j": { "text": "6–12 million € per year", "points": 4.5 },
-          "k": { "text": "12–25 million € per year", "points": 5 },
-          "l": { "text": "25–50 million € per year", "points": 5.5 },
-          "m": { "text": ">50 million € per year", "points": 6 }
+           { "text": "a. It would not cause losses in Finland", "points": 0 },
+           { "text": "b. <0.05 million € per year", "points": 0.5 },
+           { "text": "c. 0.05–0.1 million € per year", "points": 1 },
+           { "text": "d. 0.1–0.2 million € per year", "points": 1.5 },
+           { "text": "e. 0.2–0.4 million € per year", "points": 2 },
+           { "text": "f. 0.4–0.8 million € per year", "points": 2.5 },
+           { "text": "g. 0.8–1.5 million € per year", "points": 3 },
+           { "text": "h. 1.5–3 million € per year", "points": 3.5 },
+           { "text": "i. 3–6 million € per year", "points": 4 },
+           { "text": "j. 6–12 million € per year", "points": 4.5 },
+           { "text": "k. 12–25 million € per year", "points": 5 },
+           { "text": "l. 25–50 million € per year", "points": 5.5 },
+           { "text": "m. >50 million € per year", "points": 6 }
         }
       },
       {

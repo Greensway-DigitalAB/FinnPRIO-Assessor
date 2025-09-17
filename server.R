@@ -17,6 +17,7 @@ server <- function(input, output, session) {
                  restrictions = system.file(package = "base"), allowDirCreate = FALSE)
   shinyFileChoose(input, "db_file", roots = volumes, session = session)
   db_path <- reactiveVal(NULL)
+  db_file <- reactiveVal(NULL)
   
   # ---- Database connection ----
   # output$file_path_ui <- renderUI({
@@ -38,13 +39,17 @@ server <- function(input, output, session) {
     if (load$status == FALSE){
       tagList(
         # fileInput("db_file", "Upload SQLite Database", accept = c(".sqlite", ".db")),
-        shinyFilesButton("db_file", "Choose File", "Select file containing SQLite DB", multiple = FALSE),
+        shinyFilesButton("db_file", "Choose File", 
+                         "Select file containing the SQLite database", 
+                         multiple = FALSE),
         br()
       )
     } else {
       tagList(
-        h3("Working with", db_path(), load$timestamp),
-        actionButton("unload_db", "Unload database")
+        # h3("Working with", db_path(), load$timestamp)#,
+        h3("Working with", input$db_file$files$`0`[[3]]),
+        h5(db_path())#,
+        # actionButton("unload_db", "Unload database")
       )
     }
   })
@@ -67,7 +72,11 @@ server <- function(input, output, session) {
   # })
   
   observeEvent(input$db_file, {
+    
     file_path <- parseFilePaths(volumes, input$db_file)$datapath
+  
+  # filepath<<-input$db_file
+  # print(input$db_file$files$`0`[[3]])
     
     if (length(file_path) > 0 && file.exists(file_path)) {
       db_path(file_path)
@@ -354,21 +363,158 @@ server <- function(input, output, session) {
     # update_dropdowns()
   })
   
-  # Show species lists
-  output$pests <- renderTable({
-    req(pests$data)
-    pests$data
+  observeEvent(input$pot_entry_path,{
+    req(input$pot_entry_path)
+    n_entry <- length(input$pot_entry_path)
+    # print(input$pot_entry_path)
+    assessments$entry <- vector(mode = "list", length = n_entry)
+    names(assessments$entry) <- input$pot_entry_path
   })
   
-# Assessments ----
+  ## Questionaries ----
+  observe({
+    req(questions$main)
+    quesEnt <- questions$main |> filter(group == "ENT")
+    id <- quesEnt$number
+    input_names <- character(0)
+    for(i in id){
+      options <- fromJSON(quesEnt$list[i])$text
+      input_names <- c(input_names, glue("ENT{i}_{options}"))
+    }
+    # id_opt <- paste(id, options, sep = "_")
+    # input_names <- glue("ENT{)}_{options}")
+    # input_names <- glue("ENT{qid}") 
+    print(input_names)
+    print(reactiveValuesToList(input))
+    answers$main <- str(sapply(input_names, function(i) input[[i]]))
+    print(answers$main)
+    expanswer <<- reactiveValuesToList(input)
+## TODO error message for order of minimum likely maximum ----
+  })
   
-  # questionarie = NULL, 
+  output$questionarie <- renderUI({
+    req(questions$main)
+    # print(questions$main)
+    quesEnt <- questions$main |> filter(group == "ENT")
+    quesEst <- questions$main |> filter(group == "EST")
+    quesImp <- questions$main |> filter(group == "IMP")
+    quesMan <- questions$main |> filter(group == "MAN")
+    tabsetPanel(
+      tabPanel(id = "entry", 
+               title = "Entry",
+               lapply(1:nrow(quesEnt), 
+                      function(x){
+                           question <- quesEnt$question[x]
+                           options <- quesEnt$list[x]
+                           id <- quesEnt$number[x]
+                           tagList(
+                             render_minlikelymax_tab("ENT", id, question, 
+                                                     fromJSON(options)$text),
+                             textInput(glue("justEnt{id}"),
+                                       label = "Justification",
+                                       width = '500px'),
+                             tags$hr(style = "border-color: gray;")
+                           )
+                        }),
+               br(),
+               # h4("qwue"), 
+               # DTOutput("questionOne"),
+               uiOutput("questionariePath")
+               ),
+      tabPanel(id = "est", 
+               title = "Establishment and Spread",
+               lapply(1:nrow(quesEst), 
+                      function(x){
+                          question <- quesEst$question[x]
+                          options <- quesEst$list[x]
+                          id <- quesEst$number[x]
+                          tagList(
+                            render_minlikelymax_tab("Est", id, question, 
+                                                 fromJSON(options)$text),
+                            textInput(glue("justEst{id}"),
+                                          label = "Justification",
+                                          width = '500px'),
+                            tags$hr(style = "border-color: gray;")
+                          )
+                        })
+      ),
+      tabPanel(id = "imp", 
+               title = "Impact",
+               # lapply(1:nrow(quesImp), 
+               #        function(x){
+               #          question <- quesImp$question[x]
+               #          options <- quesImp$list[x]
+               #          id <- quesImp$number[x]
+               #          tagList(
+               #            render_minlikelymax_tab("Imp", id, question, 
+               #                                    fromJSON(options)$text),
+               #            textInput(glue("justImp{id}"),
+               #                      label = "Justification",
+               #                      width = '500px'),
+               #            tags$hr(style = "border-color: gray;")
+               #          )
+               #        })
+      ),
+      tabPanel(id = "man", 
+               title = "Management",
+               # lapply(1:nrow(quesMan), 
+               #        function(x){
+               #          question <- quesMan$question[x]
+               #          options <- quesMan$list[x]
+               #          id <- quesMan$number[x]
+               #          sub <- quesMan$subgroup[x]
+               #          tagList(
+               #            render_minlikelymax_tab("Man", id, question, 
+               #                                    fromJSON(options)$text),
+               #            textInput(glue("justMan{id}"),
+               #                      label = "Justification",
+               #                      width = '500px'),
+               #            tags$hr(style = "border-color: gray;")
+               #          )
+               #        })
+      ),
+      tabPanel(id = "ref", 
+               title = "References",
+               br(),
+               textAreaInput("reftexr",
+                             label = "References",
+                             width = '500px',
+                             height = '500px',
+                             resize = "both"),
+      )
+    )
+  })
+  
+  output$questionariePath <- renderUI({
+    req(assessments$entry)
+
+    tabs <- lapply(names(assessments$entry), function(x){
+      tabPanel(id = x, 
+               # title = glue("aname_{x}"),
+               title = pathways$data |>
+                 filter(idPathway == x) |>
+                 pull(name),
+               render_minlikelymax("path", 1, 
+                                  questions$entry$question[1], 
+                                  fromJSON(questions$entry$list[1])$text),
+               tags$hr(style = "border-color: gray;"),
+               render_minlikelymax("path", 2, 
+                                  questions$entry$question[2], 
+                                  fromJSON(questions$entry$list[2])$text)
+               )
+    })
+    
+    ui <- do.call(tabsetPanel, tabs)
+    return(ui)
+  })
   
   # Save Assessment
   observeEvent(input$save, {
     # dbExecute(con(), "INSERT INTO assessments(idUser, idPest, startDate, valid) VALUES(?,?,DATE('now'),1)",
     #           params = list(input$user, input$pest))
   })
+  # Assessments ----
+  
 
   # Show saved assessments
   output$assessments <- renderTable({
@@ -381,4 +527,12 @@ server <- function(input, output, session) {
   # assessments$entry <- entrypath$data <- dbReadTable(con(), "entryPathways")
   # answers$main <- dbReadTable(con(), "amswers")
   # answers$entry <- dbReadTable(con(), "pathwayAnswers")
-}
+
+  # Species ----
+  # Show species lists
+  output$pests <- renderTable({
+    req(pests$data)
+    pests$data
+  })
+
+} # END ----

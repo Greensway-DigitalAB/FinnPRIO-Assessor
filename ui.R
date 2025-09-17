@@ -1,5 +1,5 @@
 navbarPage("FinnPRIO-Assessor",
-            tabPanel("New Feature Placeholder",
+            tabPanel("New Assessment",
                         # fluidPage(
                           
                           sidebarLayout(
@@ -29,13 +29,14 @@ navbarPage("FinnPRIO-Assessor",
                                            label = "Select potential entry pathways to assess",
                                            choices = NULL,
                                            inline = FALSE)
+## TODO Specify ----
                               ),
                             
                             # Main panel for outputs: ----
                             mainPanel(
                               # Modal UI placeholders
-                              uiOutput("modal_ui"),
                               uiOutput("questionarie"),
+                              uiOutput("modal_ui"),
                               actionButton("save", "Save Assessment")
                             )
                           # )
@@ -53,11 +54,21 @@ navbarPage("FinnPRIO-Assessor",
                           )
                         )
             ),
-            tabPanel("Species data",
+            tabPanel("Simulation",
+                      fluidPage(
+                        uiOutput("simulations")
+                      )
+            ),
+            tabPanel("All pest-species data",
                     fluidPage(
                         tableOutput("pests"),
                         uiOutput("pestsSummary")
                       )
+            ),
+            tabPanel("Instructions",
+                     fluidPage(
+                       load_ui_content("ui/instructions.R"),
+                     )
             ),
            header = tagList(
              # Initialize shinyjs
@@ -65,11 +76,15 @@ navbarPage("FinnPRIO-Assessor",
              fluidRow(
                # style = "margin:20px; padding:10px; border:1px solid #ccc;",
                style = "margin:20px",
-               column(width = 4,
-                 uiOutput("file_input_ui")
-                 # uiOutput("file_path_ui")
-                 )
-               ) 
+               column(width = 6,
+                      uiOutput("file_input_ui")
+                      # uiOutput("file_path_ui")
+                      ),
+               column(width = 2, offset = 4,
+                      actionButton("unload_db", "Unload database")
+                      # actionButton("save", "Save Assessment")
+                      )
+              ) 
              ),
            # footer = tagList(
            #   fluidRow(
