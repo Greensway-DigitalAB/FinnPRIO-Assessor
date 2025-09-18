@@ -6,17 +6,18 @@ navbarPage("FinnPRIO-Assessor",
                             
                             # Sidebar with inputs: ----
                             sidebarPanel(
-                              tags$h4(strong("User information"), style = "color:#7C6A56"),
-                              selectInput("user", "Select User", choices = NULL),
-                              actionButton("new_user", "+ Add User"),
-                              
                               h3(strong(style = "font-size:24px;", "Section Title placeholder")),
                               tags$h4(strong("Pest Information"), style = "color:#7C6A56"),
                               
                               selectInput("pest", "Select Pest Species", choices = NULL),
                               actionButton("new_pest", "+ Add Pest"),
                               uiOutput("species_summary"),
-                              br(), 
+                              br(),
+                              
+                              tags$h4(strong("User information"), style = "color:#7C6A56"),
+                              selectInput("user", "Select User", choices = NULL),
+                              actionButton("new_user", "+ Add User"),
+                              
                               
                               tags$hr(style = "border-color: gray;"),
                               tags$h4(strong("Entry Pathways"), style = "color:#7C6A56"),

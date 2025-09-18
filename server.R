@@ -384,10 +384,10 @@ server <- function(input, output, session) {
     # id_opt <- paste(id, options, sep = "_")
     # input_names <- glue("ENT{)}_{options}")
     # input_names <- glue("ENT{qid}") 
-    print(input_names)
-    print(reactiveValuesToList(input))
+    # print(input_names)
+    # print(reactiveValuesToList(input))
     answers$main <- str(sapply(input_names, function(i) input[[i]]))
-    print(answers$main)
+    # print(answers$main)
     expanswer <<- reactiveValuesToList(input)
 ## TODO error message for order of minimum likely maximum ----
   })
@@ -440,38 +440,41 @@ server <- function(input, output, session) {
       ),
       tabPanel(id = "imp", 
                title = "Impact",
-               # lapply(1:nrow(quesImp), 
-               #        function(x){
-               #          question <- quesImp$question[x]
-               #          options <- quesImp$list[x]
-               #          id <- quesImp$number[x]
-               #          tagList(
-               #            render_minlikelymax_tab("Imp", id, question, 
-               #                                    fromJSON(options)$text),
-               #            textInput(glue("justImp{id}"),
-               #                      label = "Justification",
-               #                      width = '500px'),
-               #            tags$hr(style = "border-color: gray;")
-               #          )
-               #        })
+               lapply(1:nrow(quesImp),
+                      function(x){
+                        question <- quesImp$question[x]
+                        options <- quesImp$list[x]
+                        id <- quesImp$number[x]
+                        type <- quesImp$type[x]
+    print(type)
+                        tagList(
+                          render_quest_tab("Imp", id, question,
+                                           fromJSON(options)$text, type),
+                          textInput(glue("justImp{id}"),
+                                    label = "Justification",
+                                    width = '500px'),
+                          tags$hr(style = "border-color: gray;")
+                        )
+                      })
       ),
       tabPanel(id = "man", 
                title = "Management",
-               # lapply(1:nrow(quesMan), 
-               #        function(x){
-               #          question <- quesMan$question[x]
-               #          options <- quesMan$list[x]
-               #          id <- quesMan$number[x]
-               #          sub <- quesMan$subgroup[x]
-               #          tagList(
-               #            render_minlikelymax_tab("Man", id, question, 
-               #                                    fromJSON(options)$text),
-               #            textInput(glue("justMan{id}"),
-               #                      label = "Justification",
-               #                      width = '500px'),
-               #            tags$hr(style = "border-color: gray;")
-               #          )
-               #        })
+               lapply(1:nrow(quesMan),
+                      function(x){
+                        question <- quesMan$question[x]
+                        options <- quesMan$list[x]
+                        id <- quesMan$number[x]
+                        sub <- quesMan$subgroup[x]
+                        tagList(
+                          render_minlikelymax_tab("Man", id, question,
+                                                  fromJSON(options)$text),
+                          textAreaInput(glue("justMan{id}"),
+                                    label = "Justification",
+                                    width = '500px',
+                                    resize = "horizontal"),
+                          tags$hr(style = "border-color: gray;")
+                        )
+                      })
       ),
       tabPanel(id = "ref", 
                title = "References",

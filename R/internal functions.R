@@ -143,3 +143,90 @@ render_minlikelymax_tab <- function(tag, qid, question, options){
     )
   )
 }
+
+render_boolean_tab <- function(tag, qid, question, options){
+  # input_names <- glue("{tag}{qid}_{options}")  
+  input_names <- glue("{tag}{qid}_{options}")  
+  table_data <- data.frame(
+    options = options,
+    Yes  = sapply(input_names, function(r) sprintf('<input type="checkbox" name="%s" value="Yes">', r)),
+    stringsAsFactors = FALSE)
+  tagList(
+    h4(glue("{tag}{qid}: {question}")),
+    datatable(
+      table_data,
+      editable = TRUE,
+      escape = FALSE,   # allow HTML rendering
+      selection = "none", 
+      # server = FALSE,
+      rownames = FALSE,
+      options = list(dom = 't', 
+                     paging = FALSE, 
+                     autoWidth = FALSE,
+                     ordering = FALSE,
+                     columnDefs = list(
+                       list(width = '50px', targets = c(1)))
+      ),
+      callback = JS("table.rows().every(function(i, tab, row) {
+          var $this = $(this.node());
+          $this.attr('id', this.data()[0]);
+          $this.addClass('shiny-input-checkboxgroup');
+        });
+        Shiny.unbindAll(table.table().node());
+        Shiny.bindAll(table.table().node());")
+    )
+  )
+}
+
+render_quest_tab <- function(tag, qid, question, options, type = "minmax"){
+  input_names <- glue("{tag}{qid}_{options}")
+print(options)
+print(input_names)
+table_data <- data.frame(
+  options = options,
+  Minimum  = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Minimum">', r)),
+  Likely   = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Likely">', r)),
+  Maximum  = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Maximum">', r)),
+  stringsAsFactors = FALSE)
+
+  # table_data <- ifelse(type == "minmax", 
+  #                     data.frame(
+  #                                 options = options,
+  #                                 Minimum  = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Minimum">', r)),
+  #                                 Likely   = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Likely">', r)),
+  #                                 Maximum  = sapply(input_names, function(r) sprintf('<input type="radio" name="%s" value="Maximum">', r)),
+  #                                 stringsAsFactors = FALSE),
+  #                     data.frame(
+  #                                 options = options,
+  #                                 Yes  = sapply(input_names, function(r) sprintf('<input type="checkbox" name="%s" value="TRUE">', r)),
+  #                                 stringsAsFactors = FALSE)
+  # )
+print(table_data)
+  tagList(
+    h4(glue("{tag}{qid}: {question}")),
+    datatable(
+      table_data,
+      editable = TRUE,
+      escape = FALSE,   # allow HTML rendering
+      selection = "none", 
+      # server = FALSE,
+      rownames = FALSE,
+      options = list(dom = 't', 
+                     paging = FALSE, 
+                     autoWidth = FALSE,
+                     ordering = FALSE,
+                     columnDefs = list(
+                       list(width = '50px', 
+                            targets = ifelse(type == "minmax", c(1,2,3), 1))
+                     )
+      ),
+      callback = JS("table.rows().every(function(i, tab, row) {
+          var $this = $(this.node());
+          $this.attr('id', this.data()[0]);
+          $this.addClass('shiny-input-radiogroup');
+        });
+        Shiny.unbindAll(table.table().node());
+        Shiny.bindAll(table.table().node());")
+    )
+  )
+}
