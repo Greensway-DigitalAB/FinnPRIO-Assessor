@@ -13,4 +13,3 @@ library(glue)
 library(jsonlite)
 
 op <- options(digits.secs = 0)
-volumes <- c(Home = fs::path_home(), "My Computer" = "/")  # Customize as needed

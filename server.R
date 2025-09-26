@@ -10,6 +10,7 @@ server <- function(input, output, session) {
   pathways <- reactiveValues(data = NULL)
   assessments <- reactiveValues(data = NULL, questionarie = NULL, selected = NULL, entry = NULL)
   questions <- reactiveValues(main = NULL, entry = NULL)
+  points <- reactiveValues(main = NULL, entry = NULL, table2 = NULL, table3 = NULL)
   answers <- reactiveValues(main = NULL, entry = NULL)
 
   
@@ -136,7 +137,24 @@ server <- function(input, output, session) {
         # entrypath$data <- dbReadTable(con(), "entryPathways")
         questions$main <- dbReadTable(con(), "questions")
         questions$entry <- dbReadTable(con(), "pathwayQuestions")
-          
+        table2 <- dbReadTable(con(), "table2")
+        table3 <- dbReadTable(con(), "table3")
+        points$table2 <- table2 |> 
+          pivot_longer(-ENT3.ENT2,
+                       names_to = "ENT2", values_to = "Points") |> 
+          mutate(ENT2 = gsub("\\.", " ", ENT2)) |> 
+          rename(ENT3 = ENT3.ENT2)
+table2_lexp <<- points$table2
+        points$table3 <- table3 |> 
+          pivot_longer(-EST3.EST2,
+                       names_to = "EST2", values_to = "Points") |> 
+          mutate(EST2 = gsub("\\.", " ", EST2)) |> 
+          rename(EST3 = EST3.EST2)
+table3_lexp <<- points$table3
+        
+        points$main <- get_points_as_table(questions$main)
+        points$entry <- get_points_as_table(questions$entry)
+        
      } #else { stop() }
         setProgress(1)
     }, message = "Läser in bakgrund data")
@@ -334,9 +352,9 @@ server <- function(input, output, session) {
     new_id <- pests$data |> filter(scientificName == input$new_sci) |> pull(idPest)
 
     
-    lapply(threats$threatGroup, function(group){
-      print(get(glue("input$group_{group}")))
-    })
+    # lapply(threats$threatGroup, function(group){
+    #   print(get(glue("input$group_{group}")))
+    # })
     
     # idThreatSect <- c(1,2)
     # dbExecute(con(), "INSERT INTO threatXpest(idPest, idThreatSect) VALUES(?,?)",
@@ -374,27 +392,29 @@ server <- function(input, output, session) {
   ## Questionaries ----
   observe({
     req(questions$main)
-    quesEnt <- questions$main |> filter(group == "ENT")
-    id <- quesEnt$number
-    input_names <- character(0)
-    for(i in id){
-      options <- fromJSON(quesEnt$list[i])$text
-      input_names <- c(input_names, glue("ENT{i}_{options}"))
-    }
-    # id_opt <- paste(id, options, sep = "_")
-    # input_names <- glue("ENT{)}_{options}")
-    # input_names <- glue("ENT{qid}") 
-    # print(input_names)
-    # print(reactiveValuesToList(input))
-    answers$main <- str(sapply(input_names, function(i) input[[i]]))
-    # print(answers$main)
     expanswer <<- reactiveValuesToList(input)
-## TODO error message for order of minimum likely maximum ----
+    expquest <<- questions$main
+    expquest2 <<- questions$entry
+    pathways <- names(assessments$entry)
+    answ_ent <- extract_answwers(questions$main, groupTag = "ENT", input)
+testent <<- answ_ent
+print(answ_ent)
+    answ_est <- extract_answwers(questions$main, groupTag = "EST", input)
+testest <<- answ_est
+    answ_imp <- extract_answwers(questions$main, groupTag = "IMP", input)
+testimp <<- answ_imp
+    answ_man <- extract_answwers(questions$main, groupTag = "MAN", input)
+testman <<- answ_man
+    answers$main <- c(answ_ent, answ_est, answ_imp, answ_man)
+    answers$entry <- extract_answwers_entry(questions$entry, groupTag = "ENT", 
+                                            path = pathways, input)
+testpath <<- answers$entry
+    # print(points$main)
+  #### TODO error message for order of minimum likely maximum ----
   })
   
   output$questionarie <- renderUI({
     req(questions$main)
-    # print(questions$main)
     quesEnt <- questions$main |> filter(group == "ENT")
     quesEst <- questions$main |> filter(group == "EST")
     quesImp <- questions$main |> filter(group == "IMP")
@@ -408,17 +428,26 @@ server <- function(input, output, session) {
                            options <- quesEnt$list[x]
                            id <- quesEnt$number[x]
                            tagList(
-                             render_minlikelymax_tab("ENT", id, question, 
-                                                     fromJSON(options)$text),
-                             textInput(glue("justEnt{id}"),
-                                       label = "Justification",
-                                       width = '500px'),
+                             h4(glue("ENT {id}: {question}")),
+                             fluidRow(
+                               column(8,
+                                      render_quest_tab("ENT", id, question,
+                                                       fromJSON(options)$opt,
+                                                       fromJSON(options)$text)
+                                      ),
+                               column(4,
+                                      textAreaInput(glue("justEnt{id}"),
+                                                    label = "Justification",
+                                                    width = 'auto',
+                                                    height = '150px',
+                                                    resize = "vertical")
+                               )
+                             ),
+     
                              tags$hr(style = "border-color: gray;")
                            )
                         }),
                br(),
-               # h4("qwue"), 
-               # DTOutput("questionOne"),
                uiOutput("questionariePath")
                ),
       tabPanel(id = "est", 
@@ -429,11 +458,21 @@ server <- function(input, output, session) {
                           options <- quesEst$list[x]
                           id <- quesEst$number[x]
                           tagList(
-                            render_minlikelymax_tab("Est", id, question, 
-                                                 fromJSON(options)$text),
-                            textInput(glue("justEst{id}"),
-                                          label = "Justification",
-                                          width = '500px'),
+                            h4(glue("EST {id}: {question}")),
+                            fluidRow(
+                              column(8,
+                                     render_quest_tab("EST", id, question,
+                                                      fromJSON(options)$opt,
+                                                      fromJSON(options)$text)
+                              ),
+                              column(4,
+                                     textAreaInput(glue("justEst{id}"),
+                                                   label = "Justification",
+                                                   width = 'auto',
+                                                   height = '150px',
+                                                   resize = "vertical")
+                              )
+                            ),
                             tags$hr(style = "border-color: gray;")
                           )
                         })
@@ -446,13 +485,23 @@ server <- function(input, output, session) {
                         options <- quesImp$list[x]
                         id <- quesImp$number[x]
                         type <- quesImp$type[x]
-    print(type)
                         tagList(
-                          render_quest_tab("Imp", id, question,
-                                           fromJSON(options)$text, type),
-                          textInput(glue("justImp{id}"),
-                                    label = "Justification",
-                                    width = '500px'),
+                          h4(glue("IMP {id}: {question}")),
+                          fluidRow(
+                            column(8,
+                                   render_quest_tab("IMP", id, question,
+                                                    fromJSON(options)$opt,
+                                                    fromJSON(options)$text,
+                                                    type)
+                            ),
+                            column(4,
+                                   textAreaInput(glue("justImp{id}"),
+                                                 label = "Justification",
+                                                 width = 'auto',
+                                                 height = '150px',
+                                                 resize = "vertical")
+                            )
+                          ),
                           tags$hr(style = "border-color: gray;")
                         )
                       })
@@ -466,12 +515,21 @@ server <- function(input, output, session) {
                         id <- quesMan$number[x]
                         sub <- quesMan$subgroup[x]
                         tagList(
-                          render_minlikelymax_tab("Man", id, question,
-                                                  fromJSON(options)$text),
-                          textAreaInput(glue("justMan{id}"),
-                                    label = "Justification",
-                                    width = '500px',
-                                    resize = "horizontal"),
+                          h4(glue("MAN {id}: {question}")),
+                          fluidRow(
+                            column(8,
+                                   render_quest_tab("MAN", id, question,
+                                                    fromJSON(options)$opt,
+                                                    fromJSON(options)$text)
+                                   ),
+                            column(4,
+                                   textAreaInput(glue("justMan{id}"),
+                                                  label = "Justification",
+                                                  width = 'auto',
+                                                  height = '150px',
+                                                  resize = "horizontal")
+                                   )
+                            ),
                           tags$hr(style = "border-color: gray;")
                         )
                       })
@@ -479,31 +537,97 @@ server <- function(input, output, session) {
       tabPanel(id = "ref", 
                title = "References",
                br(),
-               textAreaInput("reftexr",
+               textAreaInput("reftext",
                              label = "References",
-                             width = '500px',
+                             width = 'auto',
                              height = '500px',
                              resize = "both"),
       )
     )
   })
   
+  ### Questionaries pathways ----
   output$questionariePath <- renderUI({
     req(assessments$entry)
 
     tabs <- lapply(names(assessments$entry), function(x){
       tabPanel(id = x, 
-               # title = glue("aname_{x}"),
                title = pathways$data |>
                  filter(idPathway == x) |>
                  pull(name),
-               render_minlikelymax("path", 1, 
-                                  questions$entry$question[1], 
-                                  fromJSON(questions$entry$list[1])$text),
+               #### TODO make this lapply ----
+               h4(glue("ENT 2A: {questions$entry$question[1]}")),
+               fluidRow(
+                 column(8,
+                        render_quest_tab("ENT", paste0(questions$entry$number[1],"_", 
+                                                       rep(x, length(questions$entry$number[1]))),
+                                         questions$entry$question[1], 
+                                         fromJSON(questions$entry$list[1])$opt,
+                                         fromJSON(questions$entry$list[1])$text)
+                        ),
+                 column(4,
+                        textAreaInput(glue("justEnt2A_{x}"),
+                                      label = "Justification",
+                                      width = 'auto',
+                                      height = '150px',
+                                      resize = "vertical")
+                 )
+               ),
                tags$hr(style = "border-color: gray;"),
-               render_minlikelymax("path", 2, 
-                                  questions$entry$question[2], 
-                                  fromJSON(questions$entry$list[2])$text)
+               h4(glue("ENT 2B: {questions$entry$question[2]}")),
+               fluidRow(
+                 column(8,
+                        render_quest_tab("ENT", paste0(questions$entry$number[2],"_", 
+                                                       rep(x, length(questions$entry$number[2]))),
+                                         questions$entry$question[2], 
+                                         fromJSON(questions$entry$list[2])$opt,
+                                         fromJSON(questions$entry$list[2])$text)
+                        ),
+                 column(4,
+                        textAreaInput(glue("justEnt2A"),
+                                             label = "Justification",
+                                             width = 'auto',
+                                             height = '150px',
+                                             resize = "vertical")
+                        )
+               ),
+               tags$hr(style = "border-color: gray;"),
+               h4(glue("ENT 3: {questions$entry$question[3]}")),
+               fluidRow(
+                 column(8,
+                        render_quest_tab("ENT", paste0(questions$entry$number[3],"_", 
+                                                       rep(x, length(questions$entry$number[3]))),
+                                         questions$entry$question[3],
+                                         fromJSON(questions$entry$list[3])$opt,
+                                         fromJSON(questions$entry$list[3])$text)
+                        ),
+                 column(4,
+                        textAreaInput(glue("justEnt3"),
+                                      label = "Justification",
+                                      width = 'auto',
+                                      height = '150px',
+                                      resize = "vertical")
+                        )
+                 ),
+               tags$hr(style = "border-color: gray;"),
+               h4(glue("ENT 4: {questions$entry$question[4]}")),
+               fluidRow(
+                 column(8,
+                        render_quest_tab("ENT", paste0(questions$entry$number[4],"_", 
+                                                       rep(x, length(questions$entry$number[4]))),
+                                         questions$entry$question[4], 
+                                         fromJSON(questions$entry$list[4])$opt,
+                                         fromJSON(questions$entry$list[4])$text)
+                        ),
+                 column(4,
+                        textAreaInput(glue("justEnt4"),
+                                      label = "Justification",
+                                      width = 'auto',
+                                      height = '150px',
+                                      resize = "vertical")
+                        )
+                 ),
+               tags$hr(style = "border-color: gray;")
                )
     })
     

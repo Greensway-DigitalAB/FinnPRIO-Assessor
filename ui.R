@@ -74,6 +74,10 @@ navbarPage("FinnPRIO-Assessor",
            header = tagList(
              # Initialize shinyjs
              useShinyjs(),
+             tags$head(
+               tags$link(rel = "shortcut icon", href = "./img/bug-slash-solid-full-gray.svg"),
+             ),
+             
              fluidRow(
                # style = "margin:20px; padding:10px; border:1px solid #ccc;",
                style = "margin:20px",
