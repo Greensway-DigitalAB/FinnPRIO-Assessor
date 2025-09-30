@@ -392,24 +392,23 @@ table3_lexp <<- points$table3
   ## Questionaries ----
   observe({
     req(questions$main)
-    expanswer <<- reactiveValuesToList(input)
-    expquest <<- questions$main
-    expquest2 <<- questions$entry
+    # expanswer <<- reactiveValuesToList(input)
+    # expquest <<- questions$main
+    # expquest2 <<- questions$entry
     pathways <- names(assessments$entry)
     answ_ent <- extract_answwers(questions$main, groupTag = "ENT", input)
-testent <<- answ_ent
-print(answ_ent)
     answ_est <- extract_answwers(questions$main, groupTag = "EST", input)
-testest <<- answ_est
     answ_imp <- extract_answwers(questions$main, groupTag = "IMP", input)
-testimp <<- answ_imp
     answ_man <- extract_answwers(questions$main, groupTag = "MAN", input)
-testman <<- answ_man
     answers$main <- c(answ_ent, answ_est, answ_imp, answ_man)
     answers$entry <- extract_answwers_entry(questions$entry, groupTag = "ENT", 
                                             path = pathways, input)
+testans <<- answers$main
 testpath <<- answers$entry
     # print(points$main)
+# print(answers$main)
+lapply(answers$main, function(x) is.null(x)) |> unlist() |> sum()
+    # get_inputs_as_df(answers$main, points$main) |> print()
   #### TODO error message for order of minimum likely maximum ----
   })
   
@@ -637,9 +636,33 @@ testpath <<- answers$entry
   
   # Save Assessment
   observeEvent(input$save, {
+    lapply(answers$main, function(x) is.null(x)) |> unlist() |> sum()
+    
+    if (!any(sapply(answers$main, is.null))) {
+      shinyalert(
+        title = "Incomplete Assessment",
+        text = "Please answer all main assessment questions before saving.",
+        type = "warning"
+      )
+      return()
+    } else if (length(assessments$entry) > 0 && 
+               !any(sapply(answers$entry, is.null))) {
+      shinyalert(
+        title = "Incomplete Pathway Assessment",
+        text = "Please answer all pathway assessment questions before saving.",
+        type = "warning"
+      )
+      return()
+    }
+    # Proceed with saving the assessment
+    resmain <- get_inputs_as_df(answers$main, points$main)
+    print(resmain)
+    
     # dbExecute(con(), "INSERT INTO assessments(idUser, idPest, startDate, valid) VALUES(?,?,DATE('now'),1)",
     #           params = list(input$user, input$pest))
   })
+  
+  
   # Assessments ----
   
 
@@ -662,4 +685,8 @@ testpath <<- answers$entry
     pests$data
   })
 
+  session$onSessionEnded(function() {
+    stopApp()
+  })
+  
 } # END ----

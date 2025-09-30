@@ -2,21 +2,6 @@
 
 points_main <- get_points_as_table(expquest)
 
-groups <- unique(expquest$group)
-points_all <- lapply(groups, function(grp) {
-  points <- expquest |> 
-    filter(group == grp)
-  # |> 
-  #   pull(list)
-  
-  lapply(seq(1,nrow(points)), function(i) {
-    df <- fromJSON(points$list[i])
-    df$question <- paste0(grp, points$number[i])
-    df$points <- as.character(df$points)
-    df
-  }) |> bind_rows()
-}) |> bind_rows()
-
 res <- c(testent,testest, testimp, testman)
 
 df <- tibble(
@@ -60,7 +45,10 @@ final <- bind_rows(df_clean, merged_est2_3)  |>
   pivot_wider(names_from = Answer, values_from = Points) |> 
   as.data.frame()
 
-
+final_opt <- df_points |> 
+  select(Question, Answer, Option) |> 
+  pivot_wider(names_from = Answer, values_from = Option) |> 
+  as.data.frame()
 
 points_path <- get_points_as_table(expquest2)
 res <- testpath
@@ -119,4 +107,10 @@ df_clean <- df_points  |>
 # Step 4: Combine and pivot
 final <- bind_rows(df_clean, ent2a_3, ent2b_3)  |> 
   pivot_wider(names_from = Answer, values_from = Points) |> 
+  as.data.frame()
+
+
+final_opt <- df_points |> 
+  select(Path, Question, Answer, Option) |> 
+  pivot_wider(names_from = Answer, values_from = Option) |> 
   as.data.frame()
