@@ -1,70 +1,77 @@
 navbarPage("FinnPRIO-Assessor",
-            tabPanel("New Assessment",
-                        # fluidPage(
-                          
-                          sidebarLayout(
-                            
-                            # Sidebar with inputs: ----
-                            sidebarPanel(
-                              h3(strong(style = "font-size:24px;", "Section Title placeholder")),
-                              tags$h4(strong("Pest Information"), style = "color:#7C6A56"),
-                              
-                              selectInput("pest", "Select Pest Species", choices = NULL),
-                              actionButton("new_pest", "+ Add Pest"),
-                              uiOutput("species_summary"),
-                              br(),
-                              
-                              tags$h4(strong("User information"), style = "color:#7C6A56"),
-                              selectInput("user", "Select User", choices = NULL),
-                              actionButton("new_user", "+ Add User"),
-                              
-                              
-                              tags$hr(style = "border-color: gray;"),
-                              tags$h4(strong("Entry Pathways"), style = "color:#7C6A56"),
-                                       
-                              # Entry pathways 
-                              textAreaInput("pot_entry_path_text",
-                                            label = "Potential entry pathways",
-                                            resize = "vertical"),
-                              checkboxGroupInput("pot_entry_path",
-                                           label = "Select potential entry pathways to assess",
-                                           choices = NULL,
-                                           inline = FALSE)
-## TODO Specify ----
-                              ),
-                            
-                            # Main panel for outputs: ----
-                            mainPanel(
-                              # Modal UI placeholders
-                              uiOutput("questionarie"),
-                              uiOutput("modal_ui"),
-                              actionButton("save", "Save Assessment")
-                            )
-                          # )
+            tabPanel("Assessments",
+                     tabsetPanel(id = "all_assessments",
+                        tabPanel(#id = "all_assessments", 
+                                title = tagList(icon("laptop-file", class = "fas"), "Assessments"),
+                                value = 1,
+                                fluidPage(
+                                  br(),
+                                  column(8,
+                                         h3(strong("All Assessments"), style = "color:#7C6A56"),
+                                         DTOutput("assessments")
+                                         ),
+                                  column(4,
+                                         h3(strong("Filters"), style = "color:#7C6A56"),
+                                         selectInput("filter_pest", "Select Pest Species", 
+                                                     choices = NULL),
+                                         selectInput("filter_assessor", "Select User", 
+                                                     choices = NULL),
+                                         checkboxGroupInput("filter_entry_path",
+                                                            label = "Select entry pathways",
+                                                            choices = NULL,
+                                                            inline = FALSE),
+                                         br(),
+                                         h4(strong("Create New Assessment"), style = "color:#7C6A56"),
+                                         actionButton("new_ass", "Create Assessment")
+                                  )
+                                      
+                                # sidebarLayout(
+                                #     # Sidebar with filters: 
+                                #     sidebarPanel(
+                                    #   
+                                    # ),
+                                    # mainPanel(
+                                      # uiOutput("modal_new_assessment"),
+                                    # )
+                                # )
+                                )
+                              ), 
+                        tabPanel(#id = "selected_assessments",
+                                 title = uiOutput("selectedAssName"),
+                                 value = 2,
+                                 br(),
+                                 fluidRow(
+                                   # style = "margin:20px; padding:10px; border:1px solid #ccc;",
+                                   # style = "margin:20px",
+                                   column(width = 2, offset = 10,
+                                          actionButton("save", "Save Assessment")
+                                   )
+                                 ),
+                                 uiOutput("questionarie")
                         )
-            ),
-            tabPanel("Assessments summary",
-                        sidebarLayout(
-                          # Sidebar with filters: 
-                          sidebarPanel(
-
-                          ),
-                          mainPanel(
-                            tableOutput("assessments"),
-                            uiOutput("assessmentSummary")
-                          )
-                        )
+                      )
+                    # )
             ),
             tabPanel("Simulation",
                       fluidPage(
                         uiOutput("simulations")
                       )
             ),
-            tabPanel("All pest-species data",
+            tabPanel("Pest-species data",
                     fluidPage(
-                        tableOutput("pests"),
-                        uiOutput("pestsSummary")
+                      h3(strong("Pest Information"), style = "color:#7C6A56"),
+                      column(8,
+                             tableOutput("pests")
+                      ),
+                      column(4,
+                             actionButton("new_pest", "+ Add Pest")
+                             # uiOutput("species_summary")
                       )
+                    )
+            ),
+            tabPanel("Assessors",
+                    h3(strong("Assessor information"), style = "color:#7C6A56"),
+                        actionButton("new_assessor", "+ Add Assessor")
             ),
             tabPanel("Instructions",
                      fluidPage(
@@ -81,11 +88,11 @@ navbarPage("FinnPRIO-Assessor",
              fluidRow(
                # style = "margin:20px; padding:10px; border:1px solid #ccc;",
                style = "margin:20px",
-               column(width = 6,
+               column(width = 10,
                       uiOutput("file_input_ui")
                       # uiOutput("file_path_ui")
                       ),
-               column(width = 2, offset = 4,
+               column(width = 2, #offset = 4,
                       actionButton("unload_db", "Unload database")
                       # actionButton("save", "Save Assessment")
                       )
