@@ -1,0 +1,508 @@
+data <- read.table("example.csv", sep=",", dec=".", header=TRUE, stringsAsFactors = FALSE, check.names = FALSE) 	#pathway to your csv.file
+
+
+library(mc2d) 					#this package is needed to run the Monte-Carlo simulation using PERT-distribution 
+
+lambda <- 1 					#The lambda parameter indicates the level of confidence on the most likely estimate. You need to test which parameter value best describes your condidence. I have used value 3.
+
+W1 <- 0.5						#weighting coefficient of economic impacts. Default is 0.5
+W2 <- 0.5						#weighting coefficient of environmental and social impacts. Default is 0.5. IMPORTANT: W1 and W2 needs to sum up to 1
+
+iterations <- 5000				#number of iterations in the simulation
+
+C<-0
+C<-1+C
+
+
+Question Minimum Likely Maximum
+1      ENT1       a      b       c
+2      EST1       a      b       d
+3      EST2       c      d       e
+4      EST3       b      d       d
+5      EST4       c      d       d
+6      IMP1       m      m       m
+7      IMP2       a      a       a
+8      IMP3       d      d       d
+9      IMP4       c      c       c
+10     MAN1       c      c       c
+11     MAN2       c      c       c
+12     MAN3       c      c       c
+13     MAN4    c, c   c, c    c, c
+14     MAN5       b      b       b
+Path Question Minimum Likely Maximum
+1    3    ENT2A       a      b       c
+2    3    ENT2B       a      c       d
+3    3     ENT3       c      c       d
+4    3     ENT4       d      d       d
+
+
+
+computeEntry <- function(scores) {
+  n <- length(scores)
+  entry <- 0
+  
+  for (k in 1:n) {
+    combs <- combn(scores, k)
+    term <- sum(apply(combs, 2, prod))
+    
+    # Alternate signs: + for odd k, - for even k
+    if (k %% 2 == 1) {
+      entry <- entry + term
+    } else {
+      entry <- entry - term
+    }
+  }
+  
+  return(entry)
+}
+
+
+
+score1 <- replicate(iterations,				#the results of the first assessment (first row in the csv.file) are stored in the "score1"							
+                  {
+                    
+                    pathway1 <- 2
+                    
+                    ENT1<-rpert(1,1,1,1,lambda)
+                    ENT2A<-rpert(1,1,2,2,lambda)
+                    ENT2B<-rpert(1,2,2,3,lambda)
+                    ENT3<-rpert(1,1,2,3,lambda)
+                    ENT4<-rpert(1,2,2,4,lambda)
+                    
+                    ENT3A<-ENT3
+                    if(ENT2A>2.5 & ENT3>0.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<2.5 & ENT2A>1.5 & ENT3>1.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<0.25){
+                      ENT3A=0
+                    }
+                    
+                    ScoreP1A1<-((ENT1*ENT2A*ENT4)/27)
+                    ScoreP1A2<-((ENT2A*ENT4)/9)
+                    ScoreP1A3<-((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    
+                    # if (pathway1 < 4) {
+                    #   ScorePathway1A<-ScoreP1A1
+                    # }
+                    # if(pathway1 < 2) {
+                    #   ScorePathway1A<-ScoreP1A2
+                    # }
+                    # if(pathway1 > 4) {
+                    #   ScorePathway1A<-ScoreP1A3
+                    # }
+                    ScorePathway1A <- case_when(
+                      pathway1 < 4 ~ ScoreP1A1, #((ENT1*ENT2A*ENT4)/27)
+                      pathway1 < 2 ~ ScoreP1A2, #((ENT2A*ENT4)/9)
+                      pathway1 > 4 ~ ScoreP1A3 #((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    )
+                    
+                    ENT3B<-ENT3
+                    if(ENT2B>2.5 & ENT3>0.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<2.5 & ENT2B>1.5 & ENT3>1.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<0.25){
+                      ENT3B=0
+                    }
+                    
+                    ScoreP1B1<-((ENT1*ENT2B*ENT4)/27)
+                    ScoreP1B2<-((ENT2B*ENT4)/9)
+                    ScoreP1B3<-((ENT1*ENT2B*ENT3B*ENT4)/81)
+                    
+                    if (pathway1 < 4) {
+                      ScorePathway1B<-ScoreP1B1
+                    }
+                    if(pathway1<2) {
+                      ScorePathway1B<-ScoreP1B2
+                    }
+                    if(pathway1>4) {
+                      ScorePathway1B <- ScoreP1B3
+                    }
+                    
+                    pathway2<-data[C,7]
+                    
+                    ENT1<-rpert(1,data[C,40],data[C,1],data[C,41],lambda)
+                    ENT2A<-rpert(1,data[C,48],data[C,8],data[C,49],lambda)
+                    ENT2B<-rpert(1,data[C,90],data[C,9],data[C,91],lambda)
+                    ENT3<-rpert(1,data[C,50],data[C,10],data[C,51],lambda)
+                    ENT4<-rpert(1,data[C,52],data[C,11],data[C,53],lambda)
+                    
+                    ENT3A<-ENT3
+                    if(ENT2A>2.5 & ENT3>0.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<2.5 & ENT2A>1.5 & ENT3>1.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<0.25){
+                      ENT3A=0
+                    }
+                    
+                    ScoreP2A1<-((ENT1*ENT2A*ENT4)/27)
+                    ScoreP2A2<-((ENT2A*ENT4)/9)
+                    ScoreP2A3<-((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    
+                    if (pathway2 < 4) {
+                      ScorePathway2A<-ScoreP2A1
+                    }
+                    if(pathway2<2) {
+                      ScorePathway2A<-ScoreP2A2
+                    }
+                    if(pathway2>4) {
+                      ScorePathway2A<-ScoreP2A3
+                    }
+                    
+                    ENT3B<-ENT3
+                    if(ENT2B>2.5 & ENT3>0.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<2.5 & ENT2B>1.5 & ENT3>1.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<0.25){
+                      ENT3B=0
+                    }
+                    
+                    ScoreP2B1<-((ENT1*ENT2B*ENT4)/27)
+                    ScoreP2B2<-((ENT2B*ENT4)/9)
+                    ScoreP2B3<-((ENT1*ENT2B*ENT3B*ENT4)/81)
+                    
+                    if (pathway2 < 4) {
+                      ScorePathway2B<-ScoreP2B1
+                    }
+                    if(pathway2<2) {
+                      ScorePathway2B<-ScoreP2B2
+                    }
+                    if(pathway2>4) {
+                      ScorePathway2B=ScoreP2B3
+                    }
+                    
+                    pathway3<-data[C,12]
+                    
+                    ENT1<-rpert(1,data[C,40],data[C,1],data[C,41],lambda)
+                    ENT2A<-rpert(1,data[C,54],data[C,13],data[C,55],lambda)
+                    ENT2B<-rpert(1,data[C,92],data[C,14],data[C,93],lambda)
+                    ENT3<-rpert(1,data[C,56],data[C,15],data[C,57],lambda)
+                    ENT4<-rpert(1,data[C,58],data[C,16],data[C,59],lambda)
+                    
+                    ENT3A<-ENT3
+                    
+                    if(ENT2A>2.5 & ENT3>0.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<2.5 & ENT2A>1.5 & ENT3>1.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<0.25){
+                      ENT3A=0
+                    }
+                    
+                    ScoreP3A1<-((ENT1*ENT2A*ENT4)/27)
+                    ScoreP3A2<-((ENT2A*ENT4)/9)
+                    ScoreP3A3<-((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    
+                    if (pathway3 < 4) {
+                      ScorePathway3A<-ScoreP3A1
+                    }
+                    if(pathway3<2) {
+                      ScorePathway3A<-ScoreP3A2
+                    }
+                    if(pathway3>4) {
+                      ScorePathway3A=ScoreP3A3
+                    }
+                    
+                    ENT3B<-ENT3
+                    if(ENT2B>2.5 & ENT3>0.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<2.5 & ENT2B>1.5 & ENT3>1.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<0.25){
+                      ENT3B=0
+                    }
+                    
+                    ScoreP3B1<-((ENT1*ENT2B*ENT4)/27)
+                    ScoreP3B2<-((ENT2B*ENT4)/9)
+                    ScoreP3B3<-((ENT1*ENT2B*ENT3B*ENT4)/81)
+                    
+                    if (pathway3 < 4) {
+                      ScorePathway3B<-ScoreP3B1
+                    }
+                    if(pathway3<2) {
+                      ScorePathway3B<-ScoreP3B2
+                    }
+                    if(pathway3>4) {
+                      ScorePathway3B=ScoreP3B3
+                    }
+                    
+                    pathway4<-data[C,17]
+                    
+                    ENT1<-rpert(1,data[C,40],data[C,1],data[C,41],lambda)
+                    ENT2A<-rpert(1,data[C,60],data[C,18],data[C,61],lambda)
+                    ENT2B<-rpert(1,data[C,94],data[C,19],data[C,95],lambda)
+                    ENT3<-rpert(1,data[C,62],data[C,20],data[C,63],lambda)
+                    ENT4<-rpert(1,data[C,64],data[C,21],data[C,65],lambda)
+                    
+                    ENT3A<-ENT3
+                    if(ENT2A>2.5 & ENT3>0.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<2.5 & ENT2A>1.5 & ENT3>1.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<0.25){
+                      ENT3A=0
+                    }
+                    
+                    ScoreP4A1<-((ENT1*ENT2A*ENT4)/27)
+                    ScoreP4A2<-((ENT2A*ENT4)/9)
+                    ScoreP4A3<-((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    
+                    if (pathway4 < 4) {
+                      ScorePathway4A<-ScoreP4A1
+                    }
+                    if(pathway4<2) {
+                      ScorePathway4A<-ScoreP4A2
+                    }
+                    if(pathway4>4) {
+                      ScorePathway4A<-ScoreP4A3
+                    }
+                    
+                    ENT3B<-ENT3
+                    if(ENT2B>2.5 & ENT3>0.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<2.5 & ENT2B>1.5 & ENT3>1.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<0.25){
+                      ENT3B=0
+                    }
+                    
+                    ScoreP4B1<-((ENT1*ENT2B*ENT4)/27)
+                    ScoreP4B2<-((ENT2B*ENT4)/9)
+                    ScoreP4B3<-((ENT1*ENT2B*ENT3B*ENT4)/81)
+                    
+                    if (pathway4 < 4) {
+                      ScorePathway4B<-ScoreP4B1
+                    }
+                    if(pathway4<2) {
+                      ScorePathway4B<-ScoreP4B2
+                    }
+                    if(pathway4>4) {
+                      ScorePathway4B=ScoreP4B3
+                    }
+                    
+                    pathway5<-data[C,22]
+                    
+                    ENT1<-rpert(1,data[C,40],data[C,1],data[C,41],lambda)
+                    ENT2A<-rpert(1,data[C,66],data[C,23],data[C,67],lambda)
+                    ENT2B<-rpert(1,data[C,96],data[C,24],data[C,97],lambda)
+                    ENT3<-rpert(1,data[C,68],data[C,25],data[C,69],lambda)
+                    ENT4<-rpert(1,data[C,70],data[C,26],data[C,71],lambda)
+                    
+                    ENT3A<-ENT3
+                    if(ENT2A>2.5 & ENT3>0.5){
+                      ENT3A=3
+                    }
+                    if(ENT2A<2.5 & ENT2A>1.5 & ENT3>1.5){
+                      ENT3=3
+                    }
+                    if(ENT2A<0.25){
+                      ENT3A=0
+                    }
+                    
+                    ScoreP5A1<-((ENT1*ENT2A*ENT4)/27)
+                    ScoreP5A2<-((ENT2A*ENT4)/9)
+                    ScoreP5A3<-((ENT1*ENT2A*ENT3A*ENT4)/81)
+                    
+                    if (pathway5 < 4) {
+                      ScorePathway5A<-ScoreP5A1
+                    }
+                    if(pathway5<2) {
+                      ScorePathway5A<-ScoreP5A2
+                    }
+                    if(pathway5>4) {
+                      ScorePathway5A<-ScoreP5A3
+                    }
+                    
+                    ENT3B<-ENT3
+                    if(ENT2B>2.5 & ENT3>0.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<2.5 & ENT2B>1.5 & ENT3>1.5){
+                      ENT3B=3
+                    }
+                    if(ENT2B<0.25){
+                      ENT3B=0
+                    }
+                    
+                    ScoreP5B1<-((ENT1*ENT2B*ENT4)/27)
+                    ScoreP5B2<-((ENT2B*ENT4)/9)
+                    ScoreP5B3<-((ENT1*ENT2B*ENT3B*ENT4)/81)
+                    
+                    if (pathway5 < 4) {
+                      ScorePathway5B<-ScoreP5B1
+                    }
+                    if(pathway5<2) {
+                      ScorePathway5B<-ScoreP5B2
+                    }
+                    if(pathway5>4) {
+                      ScorePathway5B=ScoreP5B3
+                    }
+                    
+                    ENTRYA <- ScorePathway1A + ScorePathway2A + ScorePathway3A + ScorePathway4A + ScorePathway5A - 
+                      ScorePathway1A * ScorePathway2A - ScorePathway1A * ScorePathway3A - ScorePathway1A * ScorePathway4A - ScorePathway1A * ScorePathway5A - 
+                      ScorePathway2A * ScorePathway3A - ScorePathway2A * ScorePathway4A - ScorePathway2A * ScorePathway5A - ScorePathway3A * ScorePathway4A - 
+                      ScorePathway3A * ScorePathway5A - ScorePathway4A * ScorePathway5A + 
+                      ScorePathway1A * ScorePathway2A * ScorePathway3A + ScorePathway1A * ScorePathway2A * ScorePathway4A + ScorePathway1A * ScorePathway2A * ScorePathway5A + 
+                      ScorePathway1A * ScorePathway3A * ScorePathway4A + ScorePathway1A * ScorePathway3A * ScorePathway5A + ScorePathway1A * ScorePathway4A * ScorePathway5A + 
+                      ScorePathway2A * ScorePathway3A * ScorePathway4A + ScorePathway2A * ScorePathway3A * ScorePathway5A + ScorePathway2A * ScorePathway4A * ScorePathway5A + 
+                      ScorePathway3A * ScorePathway4A * ScorePathway5A - 
+                      ScorePathway1A * ScorePathway2A * ScorePathway3A * ScorePathway4A - ScorePathway1A * ScorePathway2A * ScorePathway3A * ScorePathway5A - 
+                      ScorePathway1A * ScorePathway2A * ScorePathway4A * ScorePathway5A - ScorePathway1A * ScorePathway3A * ScorePathway4A * ScorePathway5A - 
+                      ScorePathway2A * ScorePathway3A * ScorePathway4A * ScorePathway5A + 
+                      ScorePathway1A * ScorePathway2A * ScorePathway3A * ScorePathway4A * ScorePathway5A
+                    
+                    ENTRYB<-ScorePathway1B+ScorePathway2B+ScorePathway3B+ScorePathway4B+ScorePathway5B-ScorePathway1B*ScorePathway2B-ScorePathway1B*ScorePathway3B-ScorePathway1B*ScorePathway4B-ScorePathway1B*ScorePathway5B-ScorePathway2B*ScorePathway3B-ScorePathway2B*ScorePathway4B-ScorePathway2B*ScorePathway5B-ScorePathway3B*ScorePathway4B-ScorePathway3B*ScorePathway5B-ScorePathway4B*ScorePathway5B+ScorePathway1B*ScorePathway2B*ScorePathway3B+ScorePathway1B*ScorePathway2B*ScorePathway4B+ScorePathway1B*ScorePathway2B*ScorePathway5B+ScorePathway1B*ScorePathway3B*ScorePathway4B+ScorePathway1B*ScorePathway3B*ScorePathway5B+ScorePathway1B*ScorePathway4B*ScorePathway5B+ScorePathway2B*ScorePathway3B*ScorePathway4B+ScorePathway2B*ScorePathway3B*ScorePathway5B+ScorePathway2B*ScorePathway4B*ScorePathway5B+ScorePathway3B*ScorePathway4B*ScorePathway5B-ScorePathway1B*ScorePathway2B*ScorePathway3B*ScorePathway4B-ScorePathway1B*ScorePathway2B*ScorePathway3B*ScorePathway5B-ScorePathway1B*ScorePathway2B*ScorePathway4B*ScorePathway5B-ScorePathway1B*ScorePathway3B*ScorePathway4B*ScorePathway5B-ScorePathway2B*ScorePathway3B*ScorePathway4B*ScorePathway5B+ScorePathway1B*ScorePathway2B*ScorePathway3B*ScorePathway4B*ScorePathway5B
+                    
+                    EST1 <- rpert(1,2,2,3,lambda)
+                    EST2 <- rpert(1,data[C,72],data[C,28],data[C,73],lambda)
+                    EST3 <- rpert(1,data[C,76],data[C,29],data[C,77],lambda)
+                    EST4 <- rpert(1,data[C,78],data[C,30],data[C,79],lambda)
+                    
+                    
+                    if(EST3>2.5 & EST2>3.5){
+                      SPR1=6
+                    }
+                    if(EST3>2.5 & EST2>2.5 & EST2<3.5){
+                      SPR1=7
+                    }
+                    if(EST3>2.5 & EST2>1.5 & EST2<2.5){
+                      SPR1=8
+                    }
+                    if(EST3>2.5 & EST2>0.5 & EST2<1.5){
+                      SPR1=9
+                    }
+                    
+                    if(EST3<2.5 & EST3>1.5 & EST2>3.5){
+                      SPR1=4
+                    }
+                    if(EST3<2.5 & EST3>1.5 & EST2>2.5 & EST2<3.5){
+                      SPR1=5
+                    }
+                    if(EST3<2.5 & EST3>1.5 & EST2>1.5 & EST2<2.5){
+                      SPR1=6
+                    }
+                    if(EST3<2.5 & EST3>1.5 & EST2>0.5 & EST2<1.5){
+                      SPR1=7
+                    }
+                    
+                    if(EST3<1.5 & EST3>0.5 & EST2>3.5){
+                      SPR1=2
+                    }
+                    if(EST3<1.5 & EST3>0.5 & EST2>2.5 & EST2<3.5){
+                      SPR1=3
+                    }
+                    if(EST3<1.5 & EST3>0.5 & EST2>1.5 & EST2<2.5){
+                      SPR1=4
+                    }
+                    if(EST3<1.5 & EST3>0.5 & EST2>0.5 & EST2<1.5){
+                      SPR1=5
+                    }
+                    
+                    if(EST3<0.5 & EST2>2.5){
+                      SPR1=1
+                    }
+                    if(EST3<0.5 & EST2>1.5 & EST2<2.5){
+                      SPR1=2
+                    }
+                    if(EST3<0.5 & EST2>0.5 & EST2<1.5){
+                      SPR1=3
+                    }
+                    
+                    if(EST2<0.5){
+                      SPR1=0
+                    }
+                    
+                    ESTABLISHMENT<-(EST1+SPR1+EST4)/21
+                    if(EST1<0.75){
+                      ESTABLISHMENT=0
+                    }
+                    if(EST2<0.5){
+                      ESTABLISHMENT=0
+                    }
+                    
+                    INVASIONA <- ENTRYA * ESTABLISHMENT
+                    INVASIONB <- ENTRYB * ESTABLISHMENT
+                    
+                    IMP1<-rpert(1,data[C,80],data[C,31],data[C,81],lambda)
+                    IMP2<-rpert(1,data[C,82],data[C,32],data[C,83],lambda)
+                    IMP3<-rpert(1,data[C,84],data[C,33],data[C,85],lambda)
+                    IMP4<-rpert(1,data[C,86],data[C,34],data[C,87],lambda)
+                    
+                    IMPACT<-((W1*(IMP1+IMP2))+(W2*(IMP3+IMP4)))/9
+                    
+                    MAN1<-rpert(1,data[C,98],data[C,35],data[C,103],lambda)
+                    MAN2<-rpert(1,data[C,99],data[C,36],data[C,104],lambda)
+                    MAN3<-rpert(1,data[C,100],data[C,37],data[C,105],lambda)
+                    MAN4<-rpert(1,data[C,101],data[C,38],data[C,106],lambda)
+                    MAN5<-rpert(1,data[C,102],data[C,39],data[C,107],lambda)
+                    
+                    PREVENTABILITY<-max(MAN1,MAN2,MAN3) ### TODO Check for modifications!!!!!
+                    CONTROLLABILITY<-max(MAN4,MAN5)
+                    MANAGEABILITY<-min(PREVENTABILITY,CONTROLLABILITY)
+                ### TODO
+                    RISKA <- INVASIONA * IMPACT
+                    RISKB <- INVASIONB * IMPACT
+                    
+                    SCORE<-rbind(ENTRYA,ENTRYB,ESTABLISHMENT,INVASIONA,INVASIONB,IMPACT,
+                                 PREVENTABILITY,CONTROLLABILITY,MANAGEABILITY, RISKA, RISKB)
+                  }
+)
+
+
+
+lambda <- 4
+iterations <- 100000
+system.time({
+  a <- replicate(iterations,				#the results of the first assessment (first row in the csv.file) are stored in the "score1"							
+            {
+              
+              pathway1 <- 2
+              
+              ENT1<-rpert(1,1,2,4,lambda)
+              ENT2A<-rpert(1,1,2,2,lambda)
+              ENT2B<-rpert(1,2,2,3,lambda)
+              ENT3<-rpert(1,1,2,3,lambda)
+              ENT4<-rpert(1,2,2,4,lambda)
+              
+              # ENT1 + ENT2A + ENT2B + ENT3 + ENT4
+              ENT1
+            }
+  )
+})
+print(a)
+summary(a)
+          
+system.time({
+              ENT1  <- rpert(iterations,1,2,4,lambda)
+              ENT2A <- rpert(iterations,1,2,2,lambda)
+              ENT2B <- rpert(iterations,2,2,3,lambda)
+              ENT3  <- rpert(iterations,1,2,3,lambda)
+              ENT4  <- rpert(iterations,2,2,4,lambda)
+              # b <- ENT1 + ENT2A + ENT2B + ENT3 + ENT4
+              b <- ENT1
+})          
+print(b)
+summary(b)
+
+
+plot(density(a), col="blue", lwd=2, main="Density Plot", xlab="Value", ylab="Density")
+lines(density(b), col="red", lwd=2)

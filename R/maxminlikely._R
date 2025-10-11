@@ -1,0 +1,86 @@
+Great! Since you're rendering multiple questions using a function like `render_quest_tab()`, and each question has its own group of inputs (e.g., `ENT1`, `ENT2`, etc.), we can **modularize the severity validation logic** into a reusable function that:
+
+1. Extracts the answers for a given group.
+2. Checks the severity order.
+3. Dynamically renders a red warning message **specific to that group**.
+
+---
+
+### ✅ Here's how you can do it:
+
+#### 1. **Define a severity check function**
+This function will return a `renderUI()` expression for a given group:
+
+```r
+render_severity_warning <- function(groupTag, questions, input) {
+  severity_map <- c(a = 1, b = 2, c = 3, d = 4)
+
+  renderUI({
+    answers <- extract_answers(questions, groupTag, input)
+    # Ensure names are "min", "likely", "max"
+    sev_values <- severity_map[answers]
+    
+    if (length(sev_values) == 3 &&
+        sev_values["min"] < sev_values["likely"] &&
+        sev_values["likely"] < sev_values["max"]) {
+      return(NULL)
+    } else {
+      tags$div(
+        style = "color: red; font-weight: bold;",
+        glue::glue("In group {groupTag}: Please ensure that 'Minimum' < 'Likely' < 'Maximum' in severity.")
+      )
+    }
+  })
+}
+```
+
+---
+
+#### 2. **In your UI**
+For each question group (e.g., `"ENT1"`, `"ENT2"`), add:
+
+```r
+uiOutput("ENT1_warning")
+```
+
+---
+
+#### 3. **In your server**
+For each group, call the function like this:
+
+```r
+output$ENT1_warning <- render_severity_warning("ENT1", questions, input)
+```
+
+You can loop over all your groups if you have them in a list:
+
+```r
+for (group in c("ENT1", "ENT2", "ENT3")) {
+  local({
+    g <- group
+    output[[paste0(g, "_warning")]] <- render_severity_warning(g, questions, input)
+  })
+}
+```
+
+---
+
+### 🧩 Bonus: Integrate into `render_quest_tab()`
+
+If `render_quest_tab()` is your custom function to render each question tab, you can modify it to also include the `uiOutput()` for the warning:
+
+```r
+render_quest_tab <- function(groupTag, id, question, options, descriptions) {
+  tagList(
+    # Your existing UI elements for the question
+    ...,
+    uiOutput(paste0(groupTag, "_warning"))
+  )
+}
+```
+
+Then in the server, just loop through all groups and assign the `render_severity_warning()` to each.
+
+---
+
+Would you like help modifying `render_quest_tab()` to include this automatically? If you share its full code, I can help you integrate it cleanly.
