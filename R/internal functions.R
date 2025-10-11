@@ -3,6 +3,14 @@ load_ui_content <- function(file) {
   source(file, local = TRUE)$value
 }
 
+#
+capitalize_first <- function(x) {
+  paste0(toupper(substr(x, 1, 1)), 
+         tolower(substr(x, 2, 3)), 
+         substr(x, 4, nchar(x)))
+}
+
+
 update_options <- function(assessors, pests, taxa, quaran, pathways, session) {
   updateSelectInput(session, "assessors", choices = setNames(c("", assessors$idAssessor), c("", assessors$fullName)))
   updateSelectInput(session, "pest", choices = setNames(c("", pests$idPest), c("", pests$scientificName)))
@@ -232,7 +240,9 @@ render_group_ui <- function(group_name, threat_groups) {
 #   )
 # }
 
-render_quest_tab <- function(tag, qid, question, options, texts, type = "minmax"){
+render_quest_tab <- function(tag, qid, question, 
+                             options, texts, 
+                             type = "minmax"){
   input_names <- glue("{tag}{qid}_{options}")
   input_text <- glue("{tag}{qid}_{texts}")
   values <- c("Minimum", "Likely", "Maximum")
@@ -245,8 +255,20 @@ render_quest_tab <- function(tag, qid, question, options, texts, type = "minmax"
   for (i in seq_len(nrow(table_data))) {
     table_data[i, ] = sprintf(
       '<input type="checkbox" name="%s" value="%s"/>',
+       # '<input type="checkbox" name="%s" value="%s" checked="checked"/>', #the last s if for adding 'checked'
       input_names[i], table_data[i, ])
   }
+  
+  
+  # table_data[i, ] <- sapply(values, function(val) {
+  #   checked <- if (!is.null(prechecked[[input_names[i]]]) && val %in% prechecked[[input_names[i]]]) {
+  #     'checked="checked"'
+  #   } else {
+  #     ''
+  #   }
+  #   sprintf('<input type="checkbox" name="%s" value="%s" %s/>', input_names[i], val, checked)
+  # })
+  
   
   colnames <- if (type == "minmax") {
     c("Options", "Minimum", "Likely", "Maximum")
@@ -422,10 +444,11 @@ render_quest_tab <- function(tag, qid, question, options, texts, type = "minmax"
 #   )
 # }
 
-extract_answwers <- function(questions, groupTag, input){
+extract_answers <- function(questions, groupTag, input){
   quesExt <- questions |> filter(group == groupTag)
   id <- quesExt$number
   input_names <- character(0)
+  
   for(i in seq(id)){
     # options <- fromJSON(quesExt$list[i])$text
     options <- fromJSON(quesExt$list[i])$opt
@@ -435,7 +458,7 @@ extract_answwers <- function(questions, groupTag, input){
   return(resp)
 }
 
-extract_answwers_entry <- function(questions, groupTag, path, input){
+extract_answers_entry <- function(questions, groupTag, path, input){
   quesExt <- questions |> filter(group == groupTag)
   id <- quesExt$number
   # id <- paste0(quesExt$number, "_", rep(path, length(quesExt$number)))
@@ -497,14 +520,14 @@ get_table3_points <- function(est2_answer, est3_answer, table3) {
     pull(Points)
 }
 
-get_inputs_as_df <- function(answers){ ##, points_main
+get_inputs_as_df <- function(answers, input){ ##, points_main
   df <- tibble(
     name = names(answers),
-    Question = sub("_.*", "", names(answers)),
-    Option = sub(".*_", "", names(answers)),
-    Answer = answers
+    question = sub("_.*", "", names(answers)),
+    option = sub(".*_", "", names(answers)),
+    answer = answers
   ) |>
-    unnest(cols = c(Answer))  # This expands each vector into separate rows
+    unnest(cols = c(answer))  # This expands each vector into separate rows
   
   # df_points <- df |> 
   #   left_join(points_main, by = c("Question", "Option"))
@@ -540,24 +563,32 @@ get_inputs_as_df <- function(answers){ ##, points_main
   
   # final_opt <- df_points |> 
   final_opt <- df |> 
-    select(Question, Answer, Option) |> 
-    pivot_wider(names_from = Answer, values_from = Option) |> 
+    select(question, answer, option) |> 
+    pivot_wider(names_from = answer, values_from = option) |> 
+    rename_with(tolower) |> 
     as.data.frame()
+  if(!is.null(final_opt)) {
+    final_opt$justification <- NA
+    
+    ## OBS only justifications for questions with answers are mapped
+    input_names_just <- glue("just{capitalize_first(final_opt$question)}")
+    respJust <- sapply(input_names_just, function(i) input[[i]])
+    final_opt$justification <- respJust
+  }
   
-  # return(list("points" = final, "options" = final_opt))
   return(final_opt)
 }
 
 
-get_inputs_path_as_df <- function(answers){ ## , points_path
+get_inputs_path_as_df <- function(answers, input){ ## , points_path
   df <- tibble(
     name = names(answers),
-    Question = sub("_.*", "", names(answers)),
-    Path = lapply(str_split(names(answers), "_"), function(x) x[2]) |> unlist(),
-    Option = sub(".*_", "", names(answers)),
-    Answer = answers
+    question = sub("_.*", "", names(answers)),
+    path = lapply(str_split(names(answers), "_"), function(x) x[2]) |> unlist(),
+    option = sub(".*_", "", names(answers)) |> tolower(),
+    answer = answers
   ) |>
-    unnest(cols = c(Answer))  # This expands each vector into separate rows
+    unnest(cols = c(answer))  # This expands each vector into separate rows
   
   # df_points <- df |> 
   #   left_join(points_path, by = c("Question", "Option"))
@@ -608,10 +639,18 @@ get_inputs_path_as_df <- function(answers){ ## , points_path
   
   # final_opt <- df_points |> 
   final_opt <- df |> 
-    select(Path, Question, Answer, Option) |> 
-    pivot_wider(names_from = Answer, values_from = Option) |> 
+    select(path, question, answer, option) |> 
+    pivot_wider(names_from = answer, values_from = option) |> 
+    rename_with(tolower) |> 
     as.data.frame()
   
-  # return(list("points" = final, "options" = final_opt))
+  if(!is.null(final_opt)) {
+    final_opt$justification <- NA
+  
+    ## OBS only justifications for questions with answers are mapped
+    input_names_just <- glue("just{capitalize_first(final_opt$question)}_{final_opt$path}")
+    respJust <- sapply(input_names_just, function(i) input[[i]])
+    final_opt$justification <- respJust
+  }
   return(final_opt)
 }
