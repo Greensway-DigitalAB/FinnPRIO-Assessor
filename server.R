@@ -449,8 +449,8 @@ table3_lexp <<- points$table3
     # assessments$entry <- NULL
     # answers$main <- NULL
     # answers$entry <- NULL
-    req(pest$data)
-    req(assessor$data)
+    req(pests$data)
+    req(assessors$data)
     req(pathways$data)
     showModal(modalDialog(
       title = "Add New Assessment",
@@ -483,8 +483,8 @@ table3_lexp <<- points$table3
     assessments$data <- dbReadTable(con(), "assessments")
     id_new_ass <- last(assessments$data$idAssessment) ## Alternatively highest if they return disordered
     
-    if(length(input$pot_entry_path) > 0){
-      for(p in input$pot_entry_path){
+    if (length(input$pot_entry_path) > 0) {
+      for (p in input$pot_entry_path) {
         dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?,?)",
                   params = list(id_new_ass, p))
       }
@@ -519,10 +519,10 @@ table3_lexp <<- points$table3
   
   output$questionarie <- renderUI({
     req(questions$main)
-    quesEnt <- questions$main |> filter(group == "ENT")
-    quesEst <- questions$main |> filter(group == "EST")
-    quesImp <- questions$main |> filter(group == "IMP")
-    quesMan <- questions$main |> filter(group == "MAN")
+    quesEnt <- questions$main |> filter(group == "ENT") |> arrange(number)
+    quesEst <- questions$main |> filter(group == "EST") |> arrange(number)
+    quesImp <- questions$main |> filter(group == "IMP") |> arrange(number)
+    quesMan <- questions$main |> filter(group == "MAN") |> arrange(number)
 
     tabsetPanel(
       tabPanel(id = "info", 
@@ -547,9 +547,11 @@ table3_lexp <<- points$table3
                                       #        class = "bubble", style = "color:#FEAB3B;"))),
                                       render_quest_tab("ENT", id, question,
                                                        fromJSON(options)$opt,
-                                                       fromJSON(options)$text),
+                                                       fromJSON(options)$text,
+                                                       answers_2_logical(answers$main, questions$main)),
                                #        # ),
                                # column(7,
+                                      br(),
                                       textAreaInput(glue("justEnt{id}"),
                                                     label = "Justification",
                                                     width = 'auto',
@@ -578,9 +580,11 @@ table3_lexp <<- points$table3
                               # column(5,
                                      render_quest_tab("EST", id, question,
                                                       fromJSON(options)$opt,
-                                                      fromJSON(options)$text),
+                                                      fromJSON(options)$text,
+                                                      answers_2_logical(answers$main, questions$main)),
                               # ),
                               # column(7,
+                                      br(),
                                      textAreaInput(glue("justEst{id}"),
                                                    label = "Justification",
                                                    width = 'auto',
@@ -609,10 +613,12 @@ table3_lexp <<- points$table3
                                    render_quest_tab("IMP", id, question,
                                                     fromJSON(options)$opt,
                                                     fromJSON(options)$text,
+                                                    answers = answers_2_logical(answers$main, questions$main),
                                                     type),
                             # ),
                             # column(7,
-                                   textAreaInput(glue("justImp{id}"),
+                                    br(),
+                                    textAreaInput(glue("justImp{id}"),
                                                  label = "Justification",
                                                  width = 'auto',
                                                  height = '150px',
@@ -639,9 +645,11 @@ table3_lexp <<- points$table3
                             # column(5,
                                    render_quest_tab("MAN", id, question,
                                                     fromJSON(options)$opt,
-                                                    fromJSON(options)$text),
+                                                    fromJSON(options)$text,
+                                                    answers_2_logical(answers$main, questions$main)),
                             #        ),
                             # column(7,
+                                   br(),
                                    textAreaInput(glue("justMan{id}"),
                                                   label = "Justification",
                                                   width = 'auto',
@@ -668,58 +676,27 @@ table3_lexp <<- points$table3
     )
   })
   
-#   observe({
-#     req(questions$main)
-#     req(answers$main)
-#     req(answers$entry)
-#     quesEnt <- questions$main |> filter(group == "ENT")
-#     quesEst <- questions$main |> filter(group == "EST")
-#     quesImp <- questions$main |> filter(group == "IMP")
-#     quesMan <- questions$main |> filter(group == "MAN")
-#     
-#     ### TODO get the stored values and update the inputs with updateRadioButtons, updateSelectInput, updateTextAreaInput
-# testans <<- answers$main
-# testpath <<- answers$entry
-# print(answers$main)
+  observe({
+    req(questions$main)
+    req(answers$main)
+    req(answers$entry)
+    
+    ### TODO get the stored values and update the inputs with updateRadioButtons, updateSelectInput, updateTextAreaInput
+testans <<- answers$main
+testpath <<- answers$entry
+print(answers$main)
 # print(answers$entry)
-# 
-#     for(i in 1:nrow(answers$main)){
-#       wQues <- questions$main |> filter(idQuestion == answers$main$idQuestion[i])
-#       options <- answers$main[i,][c("min", "likely", "max")]
+
+#     for(i in 1:nrow(testans)){
+#       wQues <- questions$main |> filter(idQuestion == testans$idQuestion[i])
 #       question_tag <- paste0(wQues$group, wQues$number)
-#       values <- c("Minimum", "Likely", "Maximum")
-# print(question_tag)
-# print(glue('{question_tag}_{options[1]}'))
-#       # runjs(glue('Shiny.setInputValue("{question_tag}_{options[1]}", ["Minimum"]);'))  
-#       # runjs(glue('Shiny.setInputValue("{question_tag}_{options[2]}", ["Likely"]);'))  
-#       # runjs(glue('Shiny.setInputValue("{question_tag}_{options[3]}", ["Maximum"]);'))
-# 
-#       js_code <- sprintf('
-#       $("input[name=\'%s_%s\'][value=\'Minimum\']").prop("checked", true);
-#       $("input[name=\'%s_%s\'][value=\'Likely\']").prop("checked", true);
-#       $("input[name=\'%s_%s\'][value=\'Maximum\']").prop("checked", true);',
-#                          question_tag, options[1], question_tag, options[2], question_tag, options[3])
-#       
-#       
-#       
-#       # js_lines <- mapply(function(opt, val) {
-#       #   if (!is.na(opt)) {
-#       #     sprintf('$("input[name=\'%s_%s\'][value=\'%s\']").prop("checked", true);',
-#       #             question_tag, opt, val)
-#       #   } else {
-#       #     ''
-#       #   }
-#       # }, options, values)
-#       
-#       # Collapse into one JS string
-#       # js_code <- paste(js_lines, collapse = "\n")
-#       
-#       
-#       runjs(js_code)
-# 
+#       testans$question_tag[i] <- question_tag
 #     }
-#     
-#   })
+# print(testans)
+print(answers_2_logical(testans, questions$main))
+# print(answers_2_logical(answers$entry, questions$entry))
+
+  })
   
   ### Questionaries pathways ----
   output$questionariePath <- renderUI({
@@ -796,7 +773,7 @@ table3_lexp <<- points$table3
   ### Save Assessment ----
   # Mark as finished and valid
   observeEvent(input$ass_finish, {
-    if(input$ass_finish == TRUE) {
+    if (input$ass_finish == TRUE) {
       ## Check for the main questions
       quest_names <- unique(sub("_.*", "", names(answers$main)))
       
@@ -933,37 +910,46 @@ table3_lexp <<- points$table3
     answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
 
     resmain <- get_inputs_as_df(answ_all, input) #, points$main
-print(resmain)
-    
-    
-    for(i in 1:nrow(resmain)){
+
+    for (i in 1:nrow(resmain)) {
       # Check if the answer already exists
       idQue <- questions$main |> 
         filter(group == substr(resmain$question[i], 1, 3),
                number == substr(resmain$question[i], 4, nchar(resmain$question[i]))) |> 
           pull(idQuestion)
       ## OBS Justification will only be updated if there is an input field for it
-#       just <- input[[paste0("just", capitalize_first(resmain$question[i]))]]
-# print(capitalize_first(resmain$question[i]))
-# print(idQue)
-# print(just)
-      resmain[i,]
+
       existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM answers
                                     WHERE idAssessment = ? AND idQuestion = ?",
                              params = list(assessments$selected$idAssessment, idQue))
-      if (existing$count[1] > 0) {
+      ## Actually, the database controls for unique combinations of idAssessment and IdQuestion, so this count would never be higher than 1
+      if (existing$count[1] > 0) { 
         # Update existing answer
         dbExecute(con(), "UPDATE answers SET min = ?, likely = ?, max = ?, justification = ?
                           WHERE idAssessment = ? AND idQuestion = ?",
-                  params = list(resmain$minimum[i], resmain$likely[i], resmain$maximum[i], resmain$justification[i],
-                                assessments$selected$idAssessment, idQue))
+                  params = list(
+                    as.character(resmain$minimum[i]),
+                    as.character(resmain$likely[i]),
+                    as.character(resmain$maximum[i]),
+                    as.character(resmain$justification[i]),
+                    as.integer(assessments$selected$idAssessment),
+                    as.integer(idQue)
+                  )
+        )
       } else {
         # Insert new answer
         dbExecute(con(), "INSERT INTO answers(idAssessment, idQuestion,
                           min, likely, max, justification)
                           VALUES(?, ?, ?, ?, ?, ?)",
-                  params = list(assessments$selected$idAssessment, idQue,
-                                resmain$minimum[i], resmain$likely[i], resmain$maximum[i], resmain$justification[i]))
+                  params = list(
+                    as.integer(assessments$selected$idAssessment),
+                    as.integer(idQue),
+                    as.character(resmain$minimum[i]),
+                    as.character(resmain$likely[i]),
+                    as.character(resmain$maximum[i]),
+                    as.character(resmain$justification[i])
+                  )
+        )
       }
     }
     
@@ -971,8 +957,12 @@ print(resmain)
     answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
                                        path = names(assessments$entry), 
                                        input)
+    
+    ## TODO error here if empty answers?
+print("fails here")
     resentry <- get_inputs_path_as_df(answ_ent, input) #, points$entry
     print(resentry)
+    ### TODO save entry answers
     
     assessments$data <- dbReadTable(con(), "assessments")
     
