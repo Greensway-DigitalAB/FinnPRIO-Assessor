@@ -359,7 +359,7 @@ render_quest_tab <- function(tag, qid, question,
     dimnames = list(input_names, values)
   )
   
-print(answers)
+# print(answers)
 # a, b, c
   
   for (i in seq_len(nrow(table_data))) {
@@ -544,53 +544,34 @@ get_inputs_as_df <- function(answers, input){ ##, points_main
   ) |>
     unnest(cols = c(answer))  # This expands each vector into separate rows
   
-  # df_points <- df |> 
-  #   left_join(points_main, by = c("Question", "Option"))
-
-  # # Step 1: Filter EST2 and EST3
-  # est2 <- df_points |> filter(Question == "EST2")
-  # est3 <- df_points |> filter(Question == "EST3")
-  # 
-  # # Step 2: Merge EST2 and EST3 by Answer type
-  # merged_est2_3 <- bind_rows(est2, est3) |> 
-  #   group_by(Answer) |> 
-  #   reframe(
-  #     est2_options = Option[Question == "EST2"],
-  #     est3_options = Option[Question == "EST3"]
-  #   ) |> 
-  #   mutate(
-  #     Points = mapply(get_table3_points, est2_options, est3_options, 
-  #                     MoreArgs = list(table3 = table3_lexp)),
-  #     Question = "EST2+3"
-  #   ) |> 
-  #   select(Question, Answer, Points)
-  
-  # Step 3: Filter out EST2 and EST3 from original data
-  # df_clean <- df_points  |> 
-  #   filter(!Question %in% c("EST2", "EST3"))  |> 
-  #   select(Question, Answer, Points) |> 
-  #   mutate(Points = as.numeric(Points))
-  # 
-  # # Step 4: Combine and pivot
-  # final <- bind_rows(df_clean, merged_est2_3)  |> 
-  #   pivot_wider(names_from = Answer, values_from = Points) |> 
-  #   as.data.frame()
-  
-  # final_opt <- df_points |> 
   final_opt <- df |> 
     select(question, answer, option) |> 
     pivot_wider(names_from = answer, values_from = option) |> 
     rename_with(tolower) |> 
     as.data.frame()
-  
-  if (!is.null(final_opt)) {
-    final_opt$justification <- NA
+print(final_opt)  
+  # if (!is.null(final_opt)) {
+  #   final_opt$justification <- NA
     
     ## OBS only justifications for questions with answers are mapped
-    input_names_just <- glue("just{capitalize_first(final_opt$question)}")
+    # input_names_just <- glue("just{capitalize_first(final_opt$question)}")
+      input_names_just <- names(input)[grepl("^just", names(input))]
+print(input_names_just)
     respJust <- sapply(input_names_just, function(i) input[[i]])
-    final_opt$justification <- respJust
-  }
+print(respJust)
+
+
+# Create a full justification dataframe
+just_df <- tibble(
+  question = toupper(sub("^just", "", input_names_just)),
+  justification = unname(respJust)
+)
+print(just_df)
+    # final_opt$justification <- respJust
+    
+    # Merge with final_opt to include all justifications
+    final_opt <- full_join(final_opt, just_df, by = "question")
+  # }
   
   return(final_opt)
 }
@@ -606,54 +587,6 @@ get_inputs_path_as_df <- function(answers, input){ ## , points_path
   ) |>
     unnest(cols = c(answer))  # This expands each vector into separate rows
   
-  # df_points <- df |> 
-  #   left_join(points_path, by = c("Question", "Option"))
-  
-  # Step 1: Filter ENT3
-  # ent2A <- df_points |> filter(Question == "ENT2A")
-  # ent2B <- df_points |> filter(Question == "ENT2B")
-  # ent3 <- df_points |> filter(Question == "ENT3")
-  # 
-  # # Step 2: Merge ENT2 and ENT3 by Answer type
-  # ent2a_3 <- bind_rows(ent2A, ent3) |> 
-  #   group_by(Answer, Path) |> 
-  #   reframe(
-  #     ent2a_options = Option[Question == "ENT2A"],
-  #     ent3_options = Option[Question == "ENT3"]
-  #   ) |> 
-  #   mutate(
-  #     Points = mapply(get_table2_points, ent2a_options, ent3_options, 
-  #                     MoreArgs = list(table2 = table2_lexp)),
-  #     Question = "ENT3A"
-  #   ) |> 
-  #   select(Path, Question, Answer, Points)
-  # 
-  # ent2b_3 <- bind_rows(ent2B, ent3) |> 
-  #   group_by(Answer, Path) |> 
-  #   summarise(
-  #     ent2b_options = Option[Question == "ENT2B"],
-  #     ent3_options = Option[Question == "ENT3"],
-  #     .groups = "drop"
-  #   ) |> 
-  #   mutate(
-  #     Points = mapply(get_table2_points, ent2b_options, ent3_options, MoreArgs = list(table2 = table2_lexp)),
-  #     Question = "ENT3B"
-  #   ) |> 
-  #   select(Path, Question, Answer, Points)
-  # 
-  # 
-  # # Step 3: Filter out ENT3 from original data
-  # df_clean <- df_points  |> 
-  #   filter(!Question %in% c("ENT3"))  |> 
-  #   select(Path, Question, Answer, Points) |> 
-  #   mutate(Points = as.numeric(Points))
-  # 
-  # # Step 4: Combine and pivot
-  # final <- bind_rows(df_clean, ent2a_3, ent2b_3)  |> 
-  #   pivot_wider(names_from = Answer, values_from = Points) |> 
-  #   as.data.frame()
-  
-  # final_opt <- df_points |> 
   final_opt <- df |> 
     select(path, question, answer, option) |> 
     pivot_wider(names_from = answer, values_from = option) |> 
@@ -704,3 +637,87 @@ answers_2_logical <- function(df, questions) {
   
   return(result)
 }
+
+
+### Points
+# df_points <- df |> 
+#   left_join(points_main, by = c("Question", "Option"))
+
+# # Step 1: Filter EST2 and EST3
+# est2 <- df_points |> filter(Question == "EST2")
+# est3 <- df_points |> filter(Question == "EST3")
+# 
+# # Step 2: Merge EST2 and EST3 by Answer type
+# merged_est2_3 <- bind_rows(est2, est3) |> 
+#   group_by(Answer) |> 
+#   reframe(
+#     est2_options = Option[Question == "EST2"],
+#     est3_options = Option[Question == "EST3"]
+#   ) |> 
+#   mutate(
+#     Points = mapply(get_table3_points, est2_options, est3_options, 
+#                     MoreArgs = list(table3 = table3_lexp)),
+#     Question = "EST2+3"
+#   ) |> 
+#   select(Question, Answer, Points)
+
+# Step 3: Filter out EST2 and EST3 from original data
+# df_clean <- df_points  |> 
+#   filter(!Question %in% c("EST2", "EST3"))  |> 
+#   select(Question, Answer, Points) |> 
+#   mutate(Points = as.numeric(Points))
+# 
+# # Step 4: Combine and pivot
+# final <- bind_rows(df_clean, merged_est2_3)  |> 
+#   pivot_wider(names_from = Answer, values_from = Points) |> 
+#   as.data.frame()
+#   
+#   
+#   ### Points for pathways
+#    
+# df_points <- df |> 
+#   left_join(points_path, by = c("Question", "Option"))
+
+# Step 1: Filter ENT3
+# ent2A <- df_points |> filter(Question == "ENT2A")
+# ent2B <- df_points |> filter(Question == "ENT2B")
+# ent3 <- df_points |> filter(Question == "ENT3")
+# 
+# # Step 2: Merge ENT2 and ENT3 by Answer type
+# ent2a_3 <- bind_rows(ent2A, ent3) |> 
+#   group_by(Answer, Path) |> 
+#   reframe(
+#     ent2a_options = Option[Question == "ENT2A"],
+#     ent3_options = Option[Question == "ENT3"]
+#   ) |> 
+#   mutate(
+#     Points = mapply(get_table2_points, ent2a_options, ent3_options, 
+#                     MoreArgs = list(table2 = table2_lexp)),
+#     Question = "ENT3A"
+#   ) |> 
+#   select(Path, Question, Answer, Points)
+# 
+# ent2b_3 <- bind_rows(ent2B, ent3) |> 
+#   group_by(Answer, Path) |> 
+#   summarise(
+#     ent2b_options = Option[Question == "ENT2B"],
+#     ent3_options = Option[Question == "ENT3"],
+#     .groups = "drop"
+#   ) |> 
+#   mutate(
+#     Points = mapply(get_table2_points, ent2b_options, ent3_options, MoreArgs = list(table2 = table2_lexp)),
+#     Question = "ENT3B"
+#   ) |> 
+#   select(Path, Question, Answer, Points)
+# 
+# 
+# # Step 3: Filter out ENT3 from original data
+# df_clean <- df_points  |> 
+#   filter(!Question %in% c("ENT3"))  |> 
+#   select(Path, Question, Answer, Points) |> 
+#   mutate(Points = as.numeric(Points))
+# 
+# # Step 4: Combine and pivot
+# final <- bind_rows(df_clean, ent2a_3, ent2b_3)  |> 
+#   pivot_wider(names_from = Answer, values_from = Points) |> 
+#   as.data.frame()

@@ -519,6 +519,7 @@ table3_lexp <<- points$table3
   
   output$questionarie <- renderUI({
     req(questions$main)
+    
     quesEnt <- questions$main |> filter(group == "ENT") |> arrange(number)
     quesEst <- questions$main |> filter(group == "EST") |> arrange(number)
     quesImp <- questions$main |> filter(group == "IMP") |> arrange(number)
@@ -684,7 +685,8 @@ table3_lexp <<- points$table3
     ### TODO get the stored values and update the inputs with updateRadioButtons, updateSelectInput, updateTextAreaInput
 testans <<- answers$main
 testpath <<- answers$entry
-print(answers$main)
+# print(names(input)[grepl("^just", names(input))])
+# print(answers$main)
 # print(answers$entry)
 
 #     for(i in 1:nrow(testans)){
@@ -693,7 +695,7 @@ print(answers$main)
 #       testans$question_tag[i] <- question_tag
 #     }
 # print(testans)
-print(answers_2_logical(testans, questions$main))
+# print(answers_2_logical(testans, questions$main))
 # print(answers_2_logical(answers$entry, questions$entry))
 
   })
@@ -917,6 +919,7 @@ print(answers_2_logical(testans, questions$main))
         filter(group == substr(resmain$question[i], 1, 3),
                number == substr(resmain$question[i], 4, nchar(resmain$question[i]))) |> 
           pull(idQuestion)
+      
       ## OBS Justification will only be updated if there is an input field for it
 
       existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM answers
