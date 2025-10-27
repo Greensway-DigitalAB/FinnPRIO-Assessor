@@ -3,7 +3,7 @@ load_ui_content <- function(file) {
   source(file, local = TRUE)$value
 }
 
-#
+# Capitalize first letter, lowercase next two, keep rest as is
 capitalize_first <- function(x) {
   paste0(toupper(substr(x, 1, 1)), 
          tolower(substr(x, 2, 3)), 
@@ -23,21 +23,6 @@ update_options <- function(assessors, pests, taxa, quaran, pathways, session) {
 }
 
 # Helper to generate UI for a group
-# render_group_ui <- function(group_name, threat_groups) {
-#   group_threats <- threat_groups[[group_name]]
-#   tagList(
-#     tags$h5(group_name),
-#     lapply(1:nrow(group_threats), function(i) {
-#       radioButtons(
-#         inputId = paste0("threat_", group_threats$idThrSect[i]),
-#         label = group_threats$name[i],
-#         choices = c("None", "Most Likely", "Possible"),
-#         inline = TRUE
-#       )
-#     })
-#   )
-# }
-
 render_group_ui <- function(group_name, threat_groups) {
   group_threats <- threat_groups[[group_name]]
   tagList(
@@ -52,299 +37,6 @@ render_group_ui <- function(group_name, threat_groups) {
     })
   )
 }
-
-# render_minlikelymax <- function(tag, qid, question, options){
-#   tagList(
-#     # h4(question),
-#     h4(glue("{tag} {qid}: {question}")),
-#     fluidRow(
-#       column(width = 5,
-#              br(),
-#              tags$ul(
-#                lapply(options, function(x) tags$li(x))
-#              )
-#       ),
-#       column(width = 1,
-#               awesomeRadio(
-#                 inputId = glue("{tag}Q_{qid}_min"),
-#                 label = "Minimum",
-#                 choices = structure(options, names = rep(" ", length(options)) ))
-#              ),
-#       column(width = 1,
-#              awesomeRadio(
-#                inputId = glue("{tag}Q_{qid}_likely"),
-#                label = "Likely",
-#                choices = structure(options, names = rep(" ", length(options)) ))
-#              ),
-#       column(width = 1,
-#              awesomeRadio(
-#                inputId = glue("{tag}Q_{qid}_max"),
-#                label = "Maximum",
-#                choices = structure(options, names = rep(" ", length(options)) ))
-#              )
-#     )
-#   )
-# }
-
-# render_quest <- function(tag, qid, question, options, type){
-#   if(type == "minmax"){
-#     tagList(
-#       # h4(question),
-#       h4(glue("{tag} {qid}: {question}")),
-#       fluidRow(
-#         column(width = 5,
-#                br(),
-#                tags$ul(
-#                  lapply(options, function(x) tags$li(x))
-#                )
-#         ),
-#         column(width = 1,
-#                awesomeRadio(
-#                  inputId = glue("{tag}Q_{qid}_min"),
-#                  label = "Minimum",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         ),
-#         column(width = 1,
-#                awesomeRadio(
-#                  inputId = glue("{tag}Q_{qid}_likely"),
-#                  label = "Likely",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         ),
-#         column(width = 1,
-#                awesomeRadio(
-#                  inputId = glue("{tag}Q_{qid}_max"),
-#                  label = "Maximum",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         )
-#       )
-#     )
-#   } else {
-#     tagList(
-#       # h4(question),
-#       h4(glue("{tag} {qid}: {question}")),
-#       fluidRow(
-#         column(width = 5,
-#                br(),
-#                tags$ul(
-#                  lapply(options, function(x) tags$li(x))
-#                )
-#         ),
-#         column(width = 1,
-#                awesomeCheckboxGroup(
-#                  inputId = glue("{tag}Q_{qid}_min"),
-#                  label = "Minimum",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         ),
-#         column(width = 1,
-#                awesomeCheckboxGroup(
-#                  inputId = glue("{tag}Q_{qid}_likely"),
-#                  label = "Likely",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         ),
-#         column(width = 1,
-#                awesomeCheckboxGroup(
-#                  inputId = glue("{tag}Q_{qid}_max"),
-#                  label = "Maximum",
-#                  choices = structure(options, names = rep(" ", length(options)) ))
-#         )
-#       )
-#     )
-#   }
-#   
-# }
-
-
-
-# render_minlikelymax2 <- function(tag, qid, question, options){
-#   tagList(
-#     h4(question),
-#     lapply(options, function(x){
-#       radioGroupButtons(
-#         inputId = glue("{tag}Q_{qid}_2"),
-#         label = x,
-#         choices = c("Min", "Likely", "Max"),
-#         justified = TRUE,
-#         checkIcon = list(yes = icon("ok", lib = "glyphicon"))
-#       )
-#       # radioButtons(glue("{tag}Q_{qid}_2"),
-#       #              x,
-#       #              choices = c("Min", "Likely", "Max"),
-#       #              inline = TRUE)
-#     })
-# 
-# 
-#   )
-# }
-
-# render_minlikelymax_tab <- function(tag, qid, question, options){
-#   # input_names <- glue("{tag}{qid}_{options}")  
-#   input_names <- glue("{tag}{qid}_{options}")
-#   values <- c("Minimum", "Likely", "Maximum")
-# 
-#   table_data = matrix(
-#     values, nrow = length(options), ncol = length(values), byrow = TRUE,
-#     dimnames = list(input_names, values)
-#   )
-#   
-#   for (i in seq_len(nrow(table_data))) {
-#     table_data[i, ] = sprintf(
-#       '<input type="checkbox" name="%s" value="%s"/>',
-#       input_names[i], table_data[i, ])
-#   }
-#   
-#   tagList(
-#     # h4(glue("{tag} {qid}: {question}")),
-#     datatable(
-#       # table_data
-#       cbind(options,table_data),
-#       colnames = c("Options", "Minimum", "Likely", "Maximum"),
-#       editable = TRUE,
-#       escape = FALSE,   # allow HTML rendering
-#       selection = "none", 
-#       # server = FALSE,
-#       rownames = TRUE,
-#       options = list(dom = 't', 
-#                      paging = FALSE, 
-#                      autoWidth = FALSE,
-#                      ordering = FALSE,
-#                      columnDefs = list(
-#                        list(width = '50px', targets = c(2,3,4)),
-#                        list(visible = FALSE, targets = c(0)))
-#                      ),
-#       callback = JS("
-#         table.rows().every(function(i, tab, row) {
-#           var $this = $(this.node());
-#           $this.attr('id', this.data()[0]);
-#           $this.addClass('shiny-input-checkboxgroup');
-#         });
-# 
-#         Shiny.unbindAll(table.table().node());
-#         Shiny.bindAll(table.table().node());
-# 
-#         var limits = { Minimum: 1, Likely: 1, Maximum: 1 };
-#         var counts = { Minimum: 0, Likely: 0, Maximum: 0 };
-# 
-#         $('input[type=checkbox]').off('change').on('change', function() {
-#           var checkbox = this;
-#           var value = checkbox.value;
-# 
-#           var totalChecked = $('input[type=checkbox][value=' + value + ']:checked').length;
-# 
-#           if (totalChecked > limits[value]) {
-#             console.warn('Limit reached for ' + value);
-#             $(checkbox).prop('checked', false);
-#           }
-#         });
-#       ")
-#     )
-#   )
-# }
-
-# render_quest_tab <- function(tag, qid, question, 
-#                              options, texts, 
-#                              type = "minmax"){
-#   input_names <- glue("{tag}{qid}_{options}")
-#   input_text <- glue("{tag}{qid}_{texts}")
-#   values <- c("Minimum", "Likely", "Maximum")
-#   
-#   table_data = matrix(
-#     values, nrow = length(options), ncol = length(values), byrow = TRUE,
-#     dimnames = list(input_names, values)
-#   )
-# 
-# # print(table_data)
-# # opt <- options[row]
-# 
-#   for (i in seq_len(nrow(table_data))) {
-#     is_checked <- c(FALSE, FALSE, FALSE)
-#     
-#     table_data[i, ] = sprintf(
-#       '<input type="checkbox" name="%s" value="%s" %s/>', # the last s if for adding 'checked'
-#        # '<input type="checkbox" name="%s" value="%s" checked="checked"/>', #the last s if for adding 'checked'
-#       input_names[i], table_data[i, ], ifelse(is_checked, ' checked="checked"', ""))
-#   }
-#   
-#   
-#   # table_data[i, ] <- sapply(values, function(val) {
-#   #   checked <- if (!is.null(prechecked[[input_names[i]]]) && val %in% prechecked[[input_names[i]]]) {
-#   #     'checked="checked"'
-#   #   } else {
-#   #     ''
-#   #   }
-#   #   sprintf('<input type="checkbox" name="%s" value="%s" %s/>', input_names[i], val, checked)
-#   # })
-#   
-#   
-#   colnames <- if (type == "minmax") {
-#     c("Options", "Minimum", "Likely", "Maximum")
-#   } else {
-#     c("Sub-questions, check the box if the answer is Yes", "Minimum", "Likely", "Maximum")
-#   }
-#   # JavaScript callback: conditional based on type
-#   
-#   js_callback <- if (type == "minmax") {
-#     JS("
-#       table.rows().every(function(i, tab, row) {
-#         var $this = $(this.node());
-#         $this.attr('id', this.data()[0]);
-#         $this.addClass('shiny-input-checkboxgroup');
-#       });
-# 
-#       Shiny.unbindAll(table.table().node());
-#       Shiny.bindAll(table.table().node());
-# 
-#       var tableId = table.table().node().id || 'table_' + Math.random().toString(36).substr(2, 9);
-#       var limits = { Minimum: 1, Likely: 1, Maximum: 1 };
-# 
-#       $('#' + tableId + ' input[type=checkbox]').off('change').on('change', function() {
-#         var checkbox = this;
-#         var value = checkbox.value;
-# 
-#         var totalChecked = $('#' + tableId + ' input[type=checkbox][value=' + value + ']:checked').length;
-# 
-#         if (totalChecked > limits[value]) {
-#           console.warn('Limit reached for ' + value);
-#           $(checkbox).prop('checked', false);
-#         }
-#       });
-#     ")
-#   } else {
-#     JS("
-#       table.rows().every(function(i, tab, row) {
-#         var $this = $(this.node());
-#         $this.attr('id', this.data()[0]);
-#         $this.addClass('shiny-input-checkboxgroup');
-#       });
-# 
-#       Shiny.unbindAll(table.table().node());
-#       Shiny.bindAll(table.table().node());
-#     ")
-#   }
-# 
-#   tagList(
-#     # h4(glue("{tag} {qid}: {question}")),
-#     datatable(
-#       cbind(texts, table_data), #table_data,
-#       colnames = colnames,
-#       editable = TRUE,
-#       escape = FALSE,   # allow HTML rendering
-#       width = "600px",
-#       selection = "none", 
-#       # server = FALSE,
-#       rownames = TRUE,
-#       options = list(dom = 't', 
-#                      paging = FALSE, 
-#                      autoWidth = FALSE,
-#                      ordering = FALSE,
-#                      columnDefs = list(
-#                        list(width = '50px', targets = c(2,3,4)),
-#                        list(visible = FALSE, targets = c(0))
-#                      )
-#       ),
-#       callback = js_callback
-#     )
-#   )
-# }
 
 render_quest_tab <- function(tag, qid, question, 
                              options, texts, 
@@ -544,36 +236,45 @@ get_inputs_as_df <- function(answers, input){ ##, points_main
   ) |>
     unnest(cols = c(answer))  # This expands each vector into separate rows
   
-  final_opt <- df |> 
-    select(question, answer, option) |> 
-    pivot_wider(names_from = answer, values_from = option) |> 
-    rename_with(tolower) |> 
-    as.data.frame()
-print(final_opt)  
-  # if (!is.null(final_opt)) {
-  #   final_opt$justification <- NA
-    
-    ## OBS only justifications for questions with answers are mapped
-    # input_names_just <- glue("just{capitalize_first(final_opt$question)}")
-      input_names_just <- names(input)[grepl("^just", names(input))]
-print(input_names_just)
+  if (nrow(df) == 0) {
+    final_opt <- data.frame(question = NA, 
+                            minimum = NA, 
+                            likely = NA, 
+                            maximum = NA)
+  } else {
+    final_opt <- df |> 
+      select(question, answer, option) |> 
+      pivot_wider(names_from = answer, values_from = option) |> 
+      rename_with(tolower) |> 
+      as.data.frame()
+  }
+
+    input_names_just <- names(input)[grepl("^just", names(input))]
+    # Remove justifications for ENT Paths as they are not collected here
+    input_names_just <- input_names_just[-grep("_",input_names_just)]  
     respJust <- sapply(input_names_just, function(i) input[[i]])
-print(respJust)
 
 
-# Create a full justification dataframe
-just_df <- tibble(
-  question = toupper(sub("^just", "", input_names_just)),
-  justification = unname(respJust)
-)
-print(just_df)
-    # final_opt$justification <- respJust
-    
+    # Create a full justification dataframe
+    just_df <- tibble(
+      question = toupper(sub("^just", "", input_names_just)),
+      justification = unname(respJust)
+    )
+
+    if(nrow(just_df) > 0){
     # Merge with final_opt to include all justifications
     final_opt <- full_join(final_opt, just_df, by = "question")
-  # }
-  
-  return(final_opt)
+    } else {
+      final_opt$justification <- NA
+    }
+
+    final_opt <- final_opt |> filter(!is.na(question),
+                                     !(is.na(minimum) & 
+                                         is.na(likely) & 
+                                         is.na(maximum) & 
+                                         (is.na(justification) | 
+                                            justification == "")))
+      return(final_opt)
 }
 
 
@@ -586,28 +287,56 @@ get_inputs_path_as_df <- function(answers, input){ ## , points_path
     answer = answers
   ) |>
     unnest(cols = c(answer))  # This expands each vector into separate rows
-  
-  final_opt <- df |> 
-    select(path, question, answer, option) |> 
-    pivot_wider(names_from = answer, values_from = option) |> 
-    rename_with(tolower) |> 
-    as.data.frame()
-  
-  if (!is.null(final_opt)) {
-    final_opt$justification <- NA
-  
-    ## OBS only justifications for questions with answers are mapped
-    input_names_just <- glue("just{capitalize_first(final_opt$question)}_{final_opt$path}")
-    respJust <- sapply(input_names_just, function(i) input[[i]])
-    final_opt$justification <- respJust
+
+  if (nrow(df) == 0) {
+    final_opt <- data.frame(question = NA, 
+                            path = NA,
+                            minimum = NA, 
+                            likely = NA, 
+                            maximum = NA)
+  } else {
+    final_opt <- df |> 
+      select(path, question, answer, option) |> 
+      pivot_wider(names_from = answer, values_from = option) |> 
+      rename_with(tolower) |> 
+      as.data.frame()
   }
+
+  input_names_just <- names(input)[grepl("^justEnt", names(input))]
+  # Remove justifications for ENT1 as they are not collected
+  input_names_just <- input_names_just[-grep("Ent1",input_names_just)]  
+  respJust <- sapply(input_names_just, function(i) input[[i]])
+  
+  # Create a full justification dataframe
+  questions <- lapply(str_split(input_names_just, "_"), function(x) x[1]) |> 
+    unlist()
+  questions <- sub("^just", "", questions) |> 
+    toupper()
+
+  just_df <- tibble(
+    question = questions,
+    path = lapply(str_split(input_names_just, "_"), function(x) x[2]) |> unlist(),
+    justification = unname(respJust)
+  )
+  
+  # Merge with final_opt to include all justifications
+  final_opt <- full_join(final_opt, just_df, by = c("question","path"))
+  
+  # remove path = na
+  final_opt <- final_opt |> filter(!is.na(path),
+                                   !(is.na(minimum) & 
+                                      is.na(likely) & 
+                                      is.na(maximum) & 
+                                      (is.na(justification) | 
+                                         justification == "")))
+  
   return(final_opt)
 }
 
 
 answers_2_logical <- function(df, questions) {
   
-  if (nrow(df) > 0) {
+    if (nrow(df) > 0) {
     result <- data.frame()
     
     for (i in seq_len(nrow(df))) {
@@ -637,6 +366,63 @@ answers_2_logical <- function(df, questions) {
   
   return(result)
 }
+
+answers_path_2_logical <- function(df, questions) {
+  if (nrow(df) > 0) {
+    result <- data.frame()
+    
+    for (i in seq_len(nrow(df))) {
+      wQues <- questions |> 
+        filter(idPathQuestion == df$idPathQuestion[i])
+      question_tag <- paste0(wQues$group, wQues$number, "_", df$idPathway[i])
+      df$question_tag[i] <- question_tag
+      
+      row <- df[i, ]
+      options <- unique(c(row$min, row$likely, row$max))
+      
+      for (opt in options) {
+        result <- rbind(result, data.frame(
+          question_tag = row$question_tag,
+          option = opt,
+          ques_tag_opt = paste0(row$question_tag, "_", opt),
+          Minimum = opt == row$min,
+          Likely = opt == row$likely,
+          Maximum = opt == row$max,
+          stringsAsFactors = FALSE
+        ))
+      }
+    }
+  } else {
+    result <- NULL
+  }
+  
+  return(result)
+}
+
+
+check_minmax_completeness <- function(df, all = FALSE) {
+  
+  if (!all) {
+    # Filter rows where type is 'minmax'
+    minmax_rows <- df[df$type == "minmax", ]
+  } else {
+    minmax_rows <- df
+  }
+  
+  # Check for missing values in min, likely, or max
+  incomplete <- minmax_rows[is.na(minmax_rows$min) | is.na(minmax_rows$likely) | is.na(minmax_rows$max), ]
+  
+  # Return result
+  if (nrow(incomplete) == 0) {
+    message("✅ All 'minmax' rows are complete.")
+    return(TRUE)
+  } else {
+    message("❌ Incomplete 'minmax' rows found:")
+    print(incomplete)
+    return(FALSE)
+  }
+}
+
 
 
 ### Points

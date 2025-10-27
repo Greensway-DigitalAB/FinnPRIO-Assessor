@@ -10,6 +10,7 @@ server <- function(input, output, session) {
   pathways <- reactiveValues(data = NULL)
   assessments <- reactiveValues(data = NULL, questionarie = NULL, 
                                 selected = NULL, entry = NULL,
+                                selected_pathways = NULL,
                                 threats = NULL)
   questions <- reactiveValues(main = NULL, entry = NULL)
   points <- reactiveValues(main = NULL, entry = NULL, table2 = NULL, table3 = NULL)
@@ -67,7 +68,15 @@ server <- function(input, output, session) {
     runjs("document.getElementById('db_file').value = ''")
     # con(NULL)
     assessments$data <- NULL
+    assessments$selected <- NULL
+    assessments$entry <- NULL
+    assessments$threats <- NULL
+    assessments$questionarie <- NULL
+    assessments$selected <- NULL
+    answers$main <- NULL
+    answers$entry <- NULL
     load$status <- FALSE
+    updateTabsetPanel(session, "all_assessments", selected = "1")
     # session$reload()
   })
   
@@ -227,6 +236,7 @@ table3_lexp <<- points$table3
       assessments$entry <- NULL
       assessments$threats <- NULL
       answers$main <- NULL
+      answers$entry <- NULL
     } else {
   ## TODO watch here the selection process based on the filter options
       assessments$selected <- assessments$data[input$assessments_rows_selected, ]
@@ -241,6 +251,7 @@ table3_lexp <<- points$table3
       selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
                                                  -- LEFT JOIN pathways ON entryPathways.idPathway = pathways.idPathway
                                                  WHERE idAssessment = {assessments$selected$idAssessment}"))
+
       if (nrow(selected_entries) > 0) {
         assessments$entry <- vector(mode = "list", length = nrow(selected_entries))
         names(assessments$entry) <- selected_entries$idPathway
@@ -251,7 +262,10 @@ table3_lexp <<- points$table3
                                              WHERE idAssessment = {as.integer(assessments$selected$idAssessment)}"))
       # Load previous answers
       answers$main <- dbGetQuery(con(), glue("SELECT * FROM answers WHERE idAssessment = {assessments$selected$idAssessment}"))
-      answers$entry <- dbGetQuery(con(), glue("SELECT * FROM pathwayAnswers WHERE idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
+      answers$entry <- dbGetQuery(con(), glue("SELECT pa.*, ep.idAssessment, ep.idPathway
+                                              FROM pathwayAnswers AS pa 
+                                              LEFT JOIN entryPathways AS ep ON pa.idEntryPathway = ep.idEntryPathway
+                                              WHERE pa.idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
       
       updateTabsetPanel(session, "all_assessments", selected = "2")
         
@@ -286,8 +300,8 @@ table3_lexp <<- points$table3
                         p("Created on", ass_info$startDate),
                         p("Last edited on", ass_info$endDate),
                         p("Questionary ver.", ass_info$version),
-                        checkboxInput("ass_valid", label = "Is valid?", value = ass_info$valid),
                         checkboxInput("ass_finish", label = "Is finished?", value = ass_info$finished),
+                        checkboxInput("ass_valid", label = "Is valid?", value = ass_info$valid),
                         uiOutput("species_summary")
                         ),
                  column(4,
@@ -346,7 +360,6 @@ table3_lexp <<- points$table3
   output$entrypath_checkboxes <- renderUI({
     req(pathways$data)
     req(assessments$selected)
-    # assessments$entry
     
     tagList(
       h4(strong("Entry Pathways"), style = "color:#7C6A56"),
@@ -363,49 +376,64 @@ table3_lexp <<- points$table3
     )
   })
   
-  observeEvent(input$ass_pot_entry_path,{
-    req(input$ass_pot_entry_path)
-    # n_entry <- length(input$ass_pot_entry_path)
-    # print(input$pot_entry_path)
-    # assessments$entry <- vector(mode = "list", length = n_entry)
-    # names(assessments$entry) <- input$ass_pot_entry_path
-    
-    # Insert associated entry pathways
-    selected_pathways <- input$ass_pot_entry_path
-    current_pathways <- names(assessments$entry)
-    paths_to_add <- setdiff(selected_pathways, current_pathways)
-    paths_to_remove <- setdiff(current_pathways, selected_pathways)
-    # Add new pathways
-    if (length(paths_to_add) > 0) {
-      for (path_id in paths_to_add) {
-        dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?, ?)",
-                  params = list(assessments$selected$idAssessment, path_id))
-      }
-    }
-    
-    # Remove unchecked pathways
-    if (length(paths_to_remove) > 0) {
-      for (path_id in paths_to_remove) {
-      ### CAUTION here we delete also the answers for this pathway in a cascade
-        dbExecute(con(), "DELETE FROM entryPathways WHERE idAssessment = ? AND idPathway = ?",
-                  params = list(assessments$selected$idAssessment, path_id))
-      }
-    }
-    
-    selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
-                                                 -- LEFT JOIN pathways ON entryPathways.idPathway = pathways.idPathway
-                                                 WHERE idAssessment = {assessments$selected$idAssessment}"))
-    if (nrow(selected_entries) > 0) {
-      assessments$entry <- vector(mode = "list", length = nrow(selected_entries))
-      names(assessments$entry) <- selected_entries$idPathway
+  
+  observe({
+    req(assessments$selected)
+    if (is.null(input$ass_pot_entry_path) || length(input$ass_pot_entry_path) == 0) {
+      assessments$selected_pathways <- NULL
     } else {
-      assessments$entry <- NULL
+      assessments$selected_pathways <- input$ass_pot_entry_path
     }
-
   })
+   
+
+#   # observeEvent(assessments$selected_pathways,{
+#     # req(assessments$selected)
+# # print(input$ass_pot_entry_path)
+# print("triggered")
+#     # n_entry <- length(input$ass_pot_entry_path)
+#     # print(input$pot_entry_path)
+#     # assessments$entry <- vector(mode = "list", length = n_entry)
+#     # names(assessments$entry) <- input$ass_pot_entry_path
+#     
+#     # removeUI("questionariePath", session)
+#     # Insert associated entry pathways
+#     selected_pathways <- assessments$selected_pathways #<-input$ass_pot_entry_path
+#     current_pathways <- names(assessments$entry)
+#     paths_to_add <- setdiff(selected_pathways, current_pathways)
+#     paths_to_remove <- setdiff(current_pathways, selected_pathways)
+#     # Add new pathways
+#     if (length(paths_to_add) > 0) {
+#       for (path_id in paths_to_add) {
+#         dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?, ?)",
+#                   params = list(assessments$selected$idAssessment, path_id))
+#       }
+#     }
+#     
+#     # Remove unchecked pathways
+#     if (length(paths_to_remove) > 0) {
+#       for (path_id in paths_to_remove) {
+#       ### CAUTION here we delete also the answers for this pathway in a cascade
+#         dbExecute(con(), "DELETE FROM entryPathways WHERE idAssessment = ? AND idPathway = ?",
+#                   params = list(assessments$selected$idAssessment, path_id))
+#       }
+#     }
+#     
+#     # selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
+#     #                                              -- LEFT JOIN pathways ON entryPathways.idPathway = pathways.idPathway
+#     #                                              WHERE idAssessment = {assessments$selected$idAssessment}"))
+#     # if (nrow(selected_entries) > 0) {
+#     #   assessments$entry <- vector(mode = "list", length = nrow(selected_entries))
+#     #   names(assessments$entry) <- selected_entries$idPathway
+#     # } else {
+#     #   assessments$entry <- NULL
+#     # }
+#     
+#   })
   
   #### Threat checkboxes (pull from DB table Threatened Sectors) ----
   output$threat_checkboxes <- renderUI({
+    req(assessments$selected)
     req(threats$data)
     threats <- threats$data
     
@@ -514,12 +542,14 @@ table3_lexp <<- points$table3
 # # print(answers$main)
 # 
 #     # get_inputs_as_df(answers$main, points$main) |> print()
-#   #### TODO error message for order of minimum likely maximum ----
 #   })
+#   #### TODO error message for order of minimum likely maximum ----
   
   output$questionarie <- renderUI({
     req(questions$main)
-    
+    req(answers$main)
+    req(assessments$selected)
+  
     quesEnt <- questions$main |> filter(group == "ENT") |> arrange(number)
     quesEst <- questions$main |> filter(group == "EST") |> arrange(number)
     quesImp <- questions$main |> filter(group == "IMP") |> arrange(number)
@@ -537,6 +567,10 @@ table3_lexp <<- points$table3
                            question <- quesEnt$question[x]
                            options <- quesEnt$list[x]
                            id <- quesEnt$number[x]
+                           just <- answers$main |> 
+                             filter(idQuestion == quesEnt$idQuestion[x]) |> 
+                             pull(justification)
+# print(answers$main |> filter(idQuestion == quesEnt$idQuestion[x]))
                            tagList(
                              h4(glue("ENT {id}: {question}")),
                              fluidRow(
@@ -555,6 +589,7 @@ table3_lexp <<- points$table3
                                       br(),
                                       textAreaInput(glue("justEnt{id}"),
                                                     label = "Justification",
+                                                    value = just,  
                                                     width = 'auto',
                                                     height = '150px',
                                                     resize = "vertical")
@@ -574,6 +609,9 @@ table3_lexp <<- points$table3
                           question <- quesEst$question[x]
                           options <- quesEst$list[x]
                           id <- quesEst$number[x]
+                          just <- answers$main |> 
+                            filter(idQuestion == quesEst$idQuestion[x]) |> 
+                            pull(justification)
                           tagList(
                             h4(glue("EST {id}: {question}")),
                             fluidRow(
@@ -588,6 +626,7 @@ table3_lexp <<- points$table3
                                       br(),
                                      textAreaInput(glue("justEst{id}"),
                                                    label = "Justification",
+                                                   value = just,  
                                                    width = 'auto',
                                                    height = '150px',
                                                    resize = "vertical")
@@ -605,6 +644,9 @@ table3_lexp <<- points$table3
                         question <- quesImp$question[x]
                         options <- quesImp$list[x]
                         id <- quesImp$number[x]
+                        just <- answers$main |> 
+                          filter(idQuestion == quesImp$idQuestion[x]) |> 
+                          pull(justification)
                         type <- quesImp$type[x]
                         tagList(
                           h4(glue("IMP {id}: {question}")),
@@ -614,13 +656,14 @@ table3_lexp <<- points$table3
                                    render_quest_tab("IMP", id, question,
                                                     fromJSON(options)$opt,
                                                     fromJSON(options)$text,
-                                                    answers = answers_2_logical(answers$main, questions$main),
+                                                    answers_2_logical(answers$main, questions$main),
                                                     type),
                             # ),
                             # column(7,
                                     br(),
                                     textAreaInput(glue("justImp{id}"),
                                                  label = "Justification",
+                                                 value = just,  
                                                  width = 'auto',
                                                  height = '150px',
                                                  resize = "vertical")
@@ -638,6 +681,9 @@ table3_lexp <<- points$table3
                         question <- quesMan$question[x]
                         options <- quesMan$list[x]
                         id <- quesMan$number[x]
+                        just <- answers$main |> 
+                          filter(idQuestion == quesMan$idQuestion[x]) |> 
+                          pull(justification)
                         sub <- quesMan$subgroup[x]
                         tagList(
                           h4(glue("MAN {id}: {question}")),
@@ -652,10 +698,11 @@ table3_lexp <<- points$table3
                             # column(7,
                                    br(),
                                    textAreaInput(glue("justMan{id}"),
-                                                  label = "Justification",
-                                                  width = 'auto',
-                                                  height = '150px',
-                                                  resize = "horizontal")
+                                                 label = "Justification",
+                                                 value = just,  
+                                                 width = 'auto',
+                                                 height = '150px',
+                                                 resize = "horizontal")
                                    # )
                             )
                           ),
@@ -672,36 +719,60 @@ table3_lexp <<- points$table3
                                             assessments$selected$reference),  
                              width = 'auto',
                              height = '500px',
-                             resize = "both"),
+                             resize = "both")
+      ),
+      tabPanel(id = "sim", 
+               title = "Simulation",
+               br(),
+               h4(strong("Run New Simulation"), style = "color:#7C6A56"),
+               fluidRow(
+                   column(8,
+                          tagList(
+                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                                h4(strong("Settings"), style = "color:#7C6A56"),
+                                fluidRow(
+                                  column(6,
+                                    numericInput("n_sim", "Iterations:", value = 5000, min = 1000, step = 100),
+                                    # numericInput("seed_sim", "Random Seed:", value = 12345, min = 1),
+                                    numericInput("lambda_sim", "Lambda:", value = 1, min = 0, 
+                                                 max = 100, step = 1)
+                                  ),
+                                  column(6,
+                                    numericInput("w1_sim", "Weight 1\n(economic impact):", 
+                                                 value = 0.5, min = 0, max = 1, step = 0.01),
+                                    numericInput("w2_sim", "Weight 2\n(environ. and social impacts):", 
+                                                 value = 0.5, min = 0, max = 1, step = 0.01)
+                                  )
+                                )
+                            )
+                          )
+                   ),
+                   column(4,
+                          tagList(
+                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                                actionButton("def_sim", "Default Settings"),
+                                actionButton("new_sim", "Run Simulation")
+                                )
+                            )
+                          )
+                 ),
+               fluidRow(
+                 div(style = "margin: 20px;",
+                   tagList(
+                     div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                         h4(strong("Results"), style = "color:#7C6A56"),
+                         DTOutput("sim_results")
+                         )
+                   )
+                 )
+               )
       )
     )
   })
   
-  observe({
-    req(questions$main)
-    req(answers$main)
-    req(answers$entry)
-    
-    ### TODO get the stored values and update the inputs with updateRadioButtons, updateSelectInput, updateTextAreaInput
-testans <<- answers$main
-testpath <<- answers$entry
-# print(names(input)[grepl("^just", names(input))])
-# print(answers$main)
-# print(answers$entry)
-
-#     for(i in 1:nrow(testans)){
-#       wQues <- questions$main |> filter(idQuestion == testans$idQuestion[i])
-#       question_tag <- paste0(wQues$group, wQues$number)
-#       testans$question_tag[i] <- question_tag
-#     }
-# print(testans)
-# print(answers_2_logical(testans, questions$main))
-# print(answers_2_logical(answers$entry, questions$entry))
-
-  })
-  
   ### Questionaries pathways ----
   output$questionariePath <- renderUI({
+    req(assessments$selected)
     req(assessments$entry)
 
     tabs <- lapply(names(assessments$entry), function(x){
@@ -710,16 +781,19 @@ testpath <<- answers$entry
                  filter(idPathway == x) |>
                  pull(name),
                 div(style = "margin: 20px;",
-                   #### TODO make this lapply ----
                    h4(glue("ENT 2A: {questions$entry$question[1]}")),
                    render_quest_tab("ENT", paste0(questions$entry$number[1],"_", 
                                                   rep(x, length(questions$entry$number[1]))),
                                     questions$entry$question[1], 
                                     fromJSON(questions$entry$list[1])$opt,
-                                    fromJSON(questions$entry$list[1])$text),
+                                    fromJSON(questions$entry$list[1])$text,
+                                    answers_path_2_logical(answers$entry, questions$entry)),
                    br(),
                    textAreaInput(glue("justEnt2A_{x}"),
                                  label = "Justification",
+                                 value = answers$entry |> 
+                                   filter(idEntryPathway == x, idPathQuestion == 1) |> 
+                                   pull(justification),
                                  width = 'auto',
                                  height = '150px',
                                  resize = "vertical"),
@@ -730,23 +804,31 @@ testpath <<- answers$entry
                                                    rep(x, length(questions$entry$number[2]))),
                                      questions$entry$question[2], 
                                      fromJSON(questions$entry$list[2])$opt,
-                                     fromJSON(questions$entry$list[2])$text),
+                                     fromJSON(questions$entry$list[2])$text,
+                                     answers_path_2_logical(answers$entry, questions$entry)),
                    br(),
                     textAreaInput(glue("justEnt2B_{x}"),
-                                         label = "Justification",
-                                         width = 'auto',
-                                         height = '150px',
-                                         resize = "vertical"),
+                                  label = "Justification",
+                                  value = answers$entry |> 
+                                    filter(idEntryPathway == x, idPathQuestion == 2) |> 
+                                    pull(justification),
+                                  width = 'auto',
+                                  height = '150px',
+                                  resize = "vertical"),
                    tags$hr(style = "border-color: gray;"),
                    h4(glue("ENT 3: {questions$entry$question[3]}")),
                     render_quest_tab("ENT", paste0(questions$entry$number[3],"_", 
                                                    rep(x, length(questions$entry$number[3]))),
                                      questions$entry$question[3],
                                      fromJSON(questions$entry$list[3])$opt,
-                                     fromJSON(questions$entry$list[3])$text),
+                                     fromJSON(questions$entry$list[3])$text,
+                                     answers_path_2_logical(answers$entry, questions$entry)),
                    br(),
                     textAreaInput(glue("justEnt3_{x}"),
                                   label = "Justification",
+                                  value = answers$entry |> 
+                                    filter(idEntryPathway == x, idPathQuestion == 3) |> 
+                                    pull(justification),
                                   width = 'auto',
                                   height = '150px',
                                   resize = "vertical"),
@@ -756,10 +838,14 @@ testpath <<- answers$entry
                                                    rep(x, length(questions$entry$number[4]))),
                                      questions$entry$question[4], 
                                      fromJSON(questions$entry$list[4])$opt,
-                                     fromJSON(questions$entry$list[4])$text),
+                                     fromJSON(questions$entry$list[4])$text,
+                                     answers_path_2_logical(answers$entry, questions$entry)),
                    br(),
                     textAreaInput(glue("justEnt4_{x}"),
                                   label = "Justification",
+                                  value = answers$entry |> 
+                                    filter(idEntryPathway == x, idPathQuestion == 4) |> 
+                                    pull(justification),
                                   width = 'auto',
                                   height = '150px',
                                   resize = "vertical"),
@@ -777,34 +863,28 @@ testpath <<- answers$entry
   observeEvent(input$ass_finish, {
     if (input$ass_finish == TRUE) {
       ## Check for the main questions
-      quest_names <- unique(sub("_.*", "", names(answers$main)))
+      answers_df <- answers$main |> 
+        left_join(questions$main, by = "idQuestion")
       
-      # Check for at least one non-NULL entry per group
-      quest_has_answer <- sapply(quest_names, function(group) {
-        group_items <- answers$main[grep(paste0("^", group, "_"), names(answers$main))]
-        any(!sapply(group_items, is.null))
-      })
-      
-      if (!all(quest_has_answer)) {
+      is_complete_main <- check_minmax_completeness(answers_df) 
+
+      if (!is_complete_main) {
         shinyalert(
           title = "Incomplete Assessment",
           text = "Please answer all main assessment questions before saving.",
           type = "warning"
         )
+        updateCheckboxInput(session, "ass_finish", value = FALSE)
         return()
-      }
+      } 
       
       ## Check for the entry pathways questions
       if (length(assessments$entry) > 0) {
-        quest_names <- unique(sub("_.*", "", names(answers$entry)))
+        answers_df <- answers$entry |> 
+          left_join(questions$entry, by = "idPathQuestion")
+        is_complete_entry <- check_minmax_completeness(answers_df, all = TRUE) 
         
-        # Check for at least one non-NULL entry per group
-        quest_has_answer <- sapply(quest_names, function(group) {
-          group_items <- answers$entry[grep(paste0("^", group, "_"), names(answers$entry))]
-          any(!sapply(group_items, is.null))
-        }) 
-        
-        if (!all(quest_has_answer)) {
+        if (!is_complete_entry) {
           shinyalert(
             title = "Incomplete Pathway Assessment",
             text = "Please answer all pathway assessment questions before saving.",
@@ -813,38 +893,76 @@ testpath <<- answers$entry
           return()
         }
         
-      }
+      } 
+      
       # If all checks pass
       dbExecute(con(), "UPDATE assessments SET finished = ?, endDate = ? WHERE idAssessment = ?",
-                params = list(as.integer(input$ass_finish), 
+                params = list(1, 
                               format(now("CET"), "%Y-%m-%d %H:%M:%S"), 
                               assessments$selected$idAssessment))
     } else {
       dbExecute(con(), "UPDATE assessments SET finished = ? WHERE idAssessment = ?",
-                params = list(as.integer(input$ass_finish), 
+                params = list(0, 
                               assessments$selected$idAssessment))
     }
     assessments$data <- dbReadTable(con(), "assessments")
+    assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+    assessments$selected <- assessments$selected |> 
+      left_join(pests$data, by = "idPest") |>
+      left_join(assessors$data, by = "idAssessor") |> 
+      mutate(label = paste(scientificName, eppoCode, 
+                           paste(firstName, lastName), startDate, 
+                           sep = "_"))
   })
   
   observeEvent(input$ass_valid, {
     if (assessments$selected$finished) {
-      ### TODO is there another for the species also valid?
+# TODO is there another for the species also valid? ----
       dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
                 params = list(as.integer(input$ass_valid),
                               assessments$selected$idAssessment))
+      
       assessments$data <- dbReadTable(con(), "assessments")
+      assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+      assessments$selected <- assessments$selected |> 
+        left_join(pests$data, by = "idPest") |>
+        left_join(assessors$data, by = "idAssessor") |> 
+        mutate(label = paste(scientificName, eppoCode, 
+                             paste(firstName, lastName), startDate, 
+                             sep = "_"))
     }
   })
   
   # Save Assessment
   observeEvent(input$save, {
     
-    dbExecute(con(), "UPDATE assessments SET endDate = ?, notes = ?
-                WHERE idAssessment = ?",
+    dbExecute(con(), "UPDATE assessments SET endDate = ?, 
+                                              potentialEntryPathways = ?,
+                                              reference = ?, 
+                                              notes = ?
+                      WHERE idAssessment = ?",
               params = list(format(now("CET"), "%Y-%m-%d %H:%M:%S"),
+                            input$ass_pot_entry_path_text,
+                            input$ass_reftext,
                             input$ass_notes,
                             assessments$selected$idAssessment))
+    
+    # # Save references
+    # dbExecute(con(), "UPDATE assessments SET reference = ? WHERE idAssessment = ?",
+    #           params = list(input$ass_reftext, assessments$selected$idAssessment))
+    # 
+    # dbExecute(con(), "UPDATE assessments SET  WHERE idAssessment = ?",
+    #           params = list(input$ass_pot_entry_path_text, assessments$selected$idAssessment))
+    
+    assessments$data <- dbReadTable(con(), "assessments")
+    assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+    
+    assessments$selected <- assessments$selected |> 
+      left_join(pests$data, by = "idPest") |>
+      left_join(assessors$data, by = "idAssessor") |> 
+      mutate(label = paste(scientificName, eppoCode, 
+                           paste(firstName, lastName), startDate, 
+                           sep = "_"))
     
     # Insert associated threats
     threat_groups <- unique(threats$data$threatGroup)
@@ -870,40 +988,12 @@ testpath <<- answers$entry
                     params = list(assessments$selected$idAssessment, threat_id))
         }
     }
+  
+    assessments$threats <- dbGetQuery(con(), glue("SELECT idThreat, threatXassessment.idThrSect, threatGroup, name FROM threatXassessment
+                                             LEFT JOIN threatenedSectors ON threatXassessment.idThrSect = threatenedSectors.idThrSect
+                                             WHERE idAssessment = {as.integer(assessments$selected$idAssessment)}"))
+    
 
-    # # Insert associated entry pathways
-    # selected_pathways <- input$ass_pot_entry_path
-    # current_pathways <- names(assessments$entry)
-    # paths_to_add <- setdiff(selected_pathways, current_pathways)
-    # paths_to_remove <- setdiff(current_pathways, selected_pathways)
-    # # Add new pathways
-    # if (length(paths_to_add) > 0) {
-    #   for (path_id in paths_to_add) {
-    #     dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?, ?)",
-    #               params = list(assessments$selected$idAssessment, path_id))
-    #   }
-    # }
-    # # dbExecute(con(), "INSERT INTO answersPathways(idAssessor, idPest, startDate, references, valid) VALUES(?,?,?,?,1)",
-    # #           params = list(input$assessor, input$pest, format(Sys.time(), "%Y-%m-%d %H:%M:%S"), input$reftext))
-    # 
-    # # Remove unchecked pathways
-    # if (length(paths_to_remove) > 0) {
-    #   for (path_id in paths_to_remove) {
-    #     dbExecute(con(), "DELETE FROM entryPathways WHERE idAssessment = ? AND idPathway = ?",
-    #               params = list(assessments$selected$idAssessment, path_id))
-    #   }
-    # }
-    # dbExecute(con(), "INSERT INTO answers(idAssessor, idPest, startDate, references, valid) VALUES(?,?,?,?,1)",
-    #           params = list(input$assessor, input$pest, format(Sys.time(), "%Y-%m-%d %H:%M:%S"), input$reftext))
-    
-    # Save potential entry pathways text
-    dbExecute(con(), "UPDATE assessments SET potentialEntryPathways = ? WHERE idAssessment = ?",
-              params = list(input$ass_pot_entry_path_text, assessments$selected$idAssessment))
-    
-    # Save references
-    dbExecute(con(), "UPDATE assessments SET reference = ? WHERE idAssessment = ?",
-              params = list(input$ass_reftext, assessments$selected$idAssessment))
-    
     # Proceed with saving the ANSWERS IN assessment
     answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
     answ_est <- extract_answers(questions$main, groupTag = "EST", input)
@@ -912,66 +1002,205 @@ testpath <<- answers$entry
     answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
 
     resmain <- get_inputs_as_df(answ_all, input) #, points$main
-
-    for (i in 1:nrow(resmain)) {
-      # Check if the answer already exists
-      idQue <- questions$main |> 
-        filter(group == substr(resmain$question[i], 1, 3),
-               number == substr(resmain$question[i], 4, nchar(resmain$question[i]))) |> 
-          pull(idQuestion)
+    if (nrow(resmain) == 0) {
+      # shinyalert(
+      #   title = "No Answers to Save",
+      #   text = "There are no answers to save for the main assessment questions.",
+      #   type = "info"
+      # )
+      # return()
+    } else {
+      for (i in 1:nrow(resmain)) {
+        # Check if the answer already exists
+        idQue <- questions$main |> 
+          filter(group == substr(resmain$question[i], 1, 3),
+                 number == substr(resmain$question[i], 4, nchar(resmain$question[i]))) |> 
+            pull(idQuestion)
+        
+        existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM answers
+                                      WHERE idAssessment = ? AND idQuestion = ?",
+                               params = list(assessments$selected$idAssessment, idQue))
+        
+        ## Actually, the database controls for unique combinations of idAssessment and IdQuestion, so this count would never be higher than 1
+        if (existing$count[1] > 0) { 
+          # Update existing answer
+          dbExecute(con(), "UPDATE answers SET min = ?, likely = ?, max = ?, justification = ?
+                            WHERE idAssessment = ? AND idQuestion = ?",
+                    params = list(
+                      as.character(resmain$minimum[i]),
+                      as.character(resmain$likely[i]),
+                      as.character(resmain$maximum[i]),
+                      as.character(resmain$justification[i]),
+                      as.integer(assessments$selected$idAssessment),
+                      as.integer(idQue)
+                    )
+          )
+        } else {
+          # Insert new answer
+          dbExecute(con(), "INSERT INTO answers(idAssessment, idQuestion,
+                            min, likely, max, justification)
+                            VALUES(?, ?, ?, ?, ?, ?)",
+                    params = list(
+                      as.integer(assessments$selected$idAssessment),
+                      as.integer(idQue),
+                      as.character(resmain$minimum[i]),
+                      as.character(resmain$likely[i]),
+                      as.character(resmain$maximum[i]),
+                      as.character(resmain$justification[i])
+                    )
+          )
+        }
+      } # end for main answers
       
-      ## OBS Justification will only be updated if there is an input field for it
+    } # end if nrow resmain
+    
+    #### Save potential entry pathways text ----
+    ### save entry answers
+    selected_pathways <- assessments$selected_pathways
+    current_pathways <- names(assessments$entry)
+    paths_to_add <- setdiff(selected_pathways, current_pathways) |> as.integer()
+    paths_to_remove <- setdiff(current_pathways, selected_pathways) |> as.integer()
 
-      existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM answers
-                                    WHERE idAssessment = ? AND idQuestion = ?",
-                             params = list(assessments$selected$idAssessment, idQue))
-      ## Actually, the database controls for unique combinations of idAssessment and IdQuestion, so this count would never be higher than 1
-      if (existing$count[1] > 0) { 
-        # Update existing answer
-        dbExecute(con(), "UPDATE answers SET min = ?, likely = ?, max = ?, justification = ?
-                          WHERE idAssessment = ? AND idQuestion = ?",
-                  params = list(
-                    as.character(resmain$minimum[i]),
-                    as.character(resmain$likely[i]),
-                    as.character(resmain$maximum[i]),
-                    as.character(resmain$justification[i]),
-                    as.integer(assessments$selected$idAssessment),
-                    as.integer(idQue)
-                  )
-        )
-      } else {
-        # Insert new answer
-        dbExecute(con(), "INSERT INTO answers(idAssessment, idQuestion,
-                          min, likely, max, justification)
-                          VALUES(?, ?, ?, ?, ?, ?)",
-                  params = list(
-                    as.integer(assessments$selected$idAssessment),
-                    as.integer(idQue),
-                    as.character(resmain$minimum[i]),
-                    as.character(resmain$likely[i]),
-                    as.character(resmain$maximum[i]),
-                    as.character(resmain$justification[i])
-                  )
-        )
+    # Add new pathways
+    if (length(paths_to_add) > 0) {
+      for (path_id in paths_to_add) {
+        dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?, ?)",
+                  params = list(assessments$selected$idAssessment, path_id))
       }
     }
     
+    # Remove unchecked pathways
+    if (length(paths_to_remove) > 0) {
+      for (path_id in paths_to_remove) {
+        idEntryPath <- dbGetQuery(con(), "SELECT idEntryPathway FROM entryPathways 
+                                 WHERE idAssessment = ? AND idPathway = ?",
+                                 params = list(assessments$selected$idAssessment, path_id)) |>
+          pull(idEntryPathway)
+        ### CAUTION here we delete also the answers for this pathway in a cascade
+        dbExecute(con(), "DELETE FROM entryPathways WHERE idEntryPathway = ?",
+                  params = list(idEntryPath))
+        dbExecute(con(), "DELETE FROM pathwayAnswers WHERE idEntryPathway = ?",
+                  params = list(idEntryPath))
+      }
+    }
     
-    answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
-                                       path = names(assessments$entry), 
-                                       input)
+    selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
+                                               WHERE idAssessment = {assessments$selected$idAssessment}"))
+
+    if (nrow(selected_entries) > 0) {
+      assessments$entry <- vector(mode = "list", length = nrow(selected_entries))
+      names(assessments$entry) <- selected_entries$idPathway
+    } else {
+      assessments$entry <- NULL
+    }
+# print(assessments$entry)
+
+    if (!is.null(assessments$entry)) {
+      
+      answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
+                                         path = names(assessments$entry), 
+                                         input)
+      
+      any_non <- any(!lapply(answ_ent, is.null) |> unlist())
+      
+      if(any_non){
+        resentry <- get_inputs_path_as_df(answ_ent, input) 
+# print(resentry)
+
+        for (i in 1:nrow(resentry)) {
+          # Check if the answer already exists
+          idQue <- questions$entry |> 
+            filter(group == substr(resentry$question[i], 1, 3),
+                   number == substr(resentry$question[i], 4, nchar(resentry$question[i]))) |> 
+            pull(idPathQuestion)
     
-    ## TODO error here if empty answers?
-print("fails here")
-    resentry <- get_inputs_path_as_df(answ_ent, input) #, points$entry
-    print(resentry)
-    ### TODO save entry answers
+          idEntry <- selected_entries |> 
+            filter(idPathway == resentry$path[i]) |> 
+            pull(idEntryPathway)
     
-    assessments$data <- dbReadTable(con(), "assessments")
+          existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM pathwayAnswers
+                                        WHERE idEntryPathway = ? AND idPathQuestion = ?",
+                                 params = list(idEntry, idQue))
+          if (existing$count[1] > 0) { 
+            # Update existing answer
+            dbExecute(con(), "UPDATE pathwayAnswers SET min = ?, likely = ?, max = ?, justification = ?
+                              WHERE idEntryPathway = ? AND idPathQuestion = ?",
+                      params = list(
+                        as.character(resentry$minimum[i]),
+                        as.character(resentry$likely[i]),
+                        as.character(resentry$maximum[i]),
+                        as.character(resentry$justification[i]),
+                        as.integer(idEntry),
+                        as.integer(idQue)
+                      )
+            )
+          } else {
+            # Insert new answer
+            dbExecute(con(), "INSERT INTO pathwayAnswers(idEntryPathway, idPathQuestion,
+                              min, likely, max, justification)
+                              VALUES(?, ?, ?, ?, ?, ?)",
+                      params = list(
+                        as.integer(idEntry),
+                        as.integer(idQue),
+                        as.character(resentry$minimum[i]),
+                        as.character(resentry$likely[i]),
+                        as.character(resentry$maximum[i]),
+                        as.character(resentry$justification[i])
+                      )
+            )
+          }
+        }
+      } # end if any non null
+    } # end if entry not null
     
+    # assessments$data <- dbReadTable(con(), "assessments")
+    answers$main <- dbGetQuery(con(), glue("SELECT * FROM answers WHERE idAssessment = {assessments$selected$idAssessment}"))
+    # answers$entry <- dbGetQuery(con(), glue("SELECT * FROM pathwayAnswers WHERE idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
+    answers$entry <- dbGetQuery(con(), glue("SELECT pa.*, ep.idAssessment, ep.idPathway
+                                              FROM pathwayAnswers AS pa 
+                                              LEFT JOIN entryPathways AS ep ON pa.idEntryPathway = ep.idEntryPathway
+                                              WHERE pa.idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
   })
   
-
+  # Simulations ----
+  
+  
+  observeEvent(input$w1_sim, {
+    # Update w2 to keep the sum at 1
+    new_w2 <- round(1 - input$w1_sim, 2)
+    updateNumericInput(session, "w2_sim", value = new_w2)
+  })
+  
+  observeEvent(input$w2_sim, {
+    # Update w1 to keep the sum at 1
+    new_w1 <- round(1 - input$w2_sim, 2)
+    updateNumericInput(session, "w1_sim", value = new_w1)
+  })
+  
+  observeEvent(input$def_sim, {
+    updateNumericInput(session, "n_sim", value = 5000)
+    # updateNumericInput(session, "seed_sim", value = 12345)
+    updateNumericInput(session, "lambda_sim", value = 1)
+    updateNumericInput(session, "w1_sim", value = 0.5)
+    updateNumericInput(session, "w2_sim", value = 0.5)
+  })
+  
+  
+  ## Modal for new simulation ----
+  
+  observeEvent(input$new_sim, {
+    # showModal(modalDialog(
+    #   title = "Add New Simulation",
+    #   textInput("sim_name", "Simulation Name"),
+    #   textAreaInput("sim_desc", "Description", height = "100px", resize = "vertical"),
+    #   footer = tagList(
+    #     modalButton("Cancel"),
+    #     actionButton("confirm_sim", "Save")
+    #   )
+    # ))
+    message("run simulation")
+  })
+  
   # Species ----
   # Show species lists
   output$pests <- renderTable({

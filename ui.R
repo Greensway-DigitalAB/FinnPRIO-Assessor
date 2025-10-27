@@ -41,11 +41,22 @@ navbarPage("FinnPRIO-Assessor",
                                  value = 2,
                                  br(),
                                  fluidRow(
-                                   # style = "margin:20px; padding:10px; border:1px solid #ccc;",
-                                   # style = "margin:20px",
-                                   column(width = 2, offset = 10,
-                                          actionButton("save", "Save Assessment")
-                                   )
+                                   # # style = "margin:20px; padding:10px; border:1px solid #ccc;",
+                                   # # style = "margin:20px",
+                                   # column(width = 2, offset = 10,
+                                   #        actionButton("save", "Save Assessment")
+                                   # )
+                                   tags$style(
+                                   HTML("
+                                       #save {
+                                       position: fixed;
+                                       top: 315px;       /* Distance from top */
+                                       right: 20px;      /* Distance from right */
+                                       z-index: 1000;    /* Ensures it stays on top */
+                                       }")
+                                   ),
+                                   actionButton("save", "Save Assessment")
+                                   
                                  ),
                                  uiOutput("questionarie")
                         )
@@ -54,7 +65,15 @@ navbarPage("FinnPRIO-Assessor",
             ),
             tabPanel("Simulation",
                       fluidPage(
-                        uiOutput("simulations")
+                        br(),
+                        column(8,
+                               h3(strong("All Simulations"), style = "color:#7C6A56"),
+                               DTOutput("simulations")
+                        ),
+                        column(4,
+                               h4(strong("Run New Simulation"), style = "color:#7C6A56"),
+                               actionButton("all_sim", "Run All Simulation")
+                        )
                       )
             ),
             tabPanel("Pest-species data",
