@@ -67,8 +67,8 @@ navbarPage("FinnPRIO-Assessor",
                       fluidPage(
                         br(),
                         column(8,
-                               h3(strong("All Simulations"), style = "color:#7C6A56"),
-                               DTOutput("simulations")
+                               h3(strong("All Simulations"), style = "color:#7C6A56")#,
+                               # DTOutput("simulations")
                         ),
                         column(4,
                                h4(strong("Run New Simulation"), style = "color:#7C6A56"),
