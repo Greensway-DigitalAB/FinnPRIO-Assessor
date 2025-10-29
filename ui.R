@@ -63,19 +63,19 @@ navbarPage("FinnPRIO-Assessor",
                       )
                     # )
             ),
-            tabPanel("Simulation",
-                      fluidPage(
-                        br(),
-                        column(8,
-                               h3(strong("All Simulations"), style = "color:#7C6A56")#,
-                               # DTOutput("simulations")
-                        ),
-                        column(4,
-                               h4(strong("Run New Simulation"), style = "color:#7C6A56"),
-                               actionButton("all_sim", "Run All Simulation")
-                        )
-                      )
-            ),
+            # tabPanel("Simulation",
+            #           fluidPage(
+            #             br(),
+            #             column(8,
+            #                    h3(strong("All Simulations"), style = "color:#7C6A56")#,
+            #                    # DTOutput("simulations")
+            #             ),
+            #             column(4,
+            #                    h4(strong("Run New Simulation"), style = "color:#7C6A56"),
+            #                    actionButton("all_sim", "Run All Simulation")
+            #             )
+            #           )
+            # ),
             tabPanel("Pest-species data",
                     fluidPage(
                       h3(strong("Pest Information"), style = "color:#7C6A56"),

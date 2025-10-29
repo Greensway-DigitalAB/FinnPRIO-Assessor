@@ -51,9 +51,6 @@ render_quest_tab <- function(tag, qid, question,
     dimnames = list(input_names, values)
   )
   
-# print(answers)
-# a, b, c
-  
   for (i in seq_len(nrow(table_data))) {
     if (!is.null(answers)) {
       is_checked <- answers |> 
@@ -68,16 +65,6 @@ render_quest_tab <- function(tag, qid, question,
       # '<input type="checkbox" name="%s" value="%s" checked="checked"/>', #the last s if for adding 'checked'
       input_names[i], table_data[i, ], ifelse(is_checked, ' checked="checked"', ""))
   }
-  
-  
-  # table_data[i, ] <- sapply(values, function(val) {
-  #   checked <- if (!is.null(prechecked[[input_names[i]]]) && val %in% prechecked[[input_names[i]]]) {
-  #     'checked="checked"'
-  #   } else {
-  #     ''
-  #   }
-  #   sprintf('<input type="checkbox" name="%s" value="%s" %s/>', input_names[i], val, checked)
-  # })
   
   
   colnames <- if (type == "minmax") {
@@ -147,8 +134,86 @@ render_quest_tab <- function(tag, qid, question,
                      )
       ),
       callback = js_callback
-    )
+    ),
+    uiOutput(glue("{tag}{qid}_warning"))
   )
+}
+
+render_severity_warning <- function(groupTag, answers) {
+  severity_map <- c(a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9)
+  focal_ans <- answers |> 
+    filter(question == groupTag) |> 
+    select(minimum, likely, maximum) |> 
+    unlist()
+# print(focal_ans)
+  renderUI({
+    # Ensure names are "min", "likely", "max"
+    sev_values <- severity_map[focal_ans]
+    names(sev_values) <- c("minimum", "likely", "maximum")
+
+    if (any(is.na(sev_values))) {
+      return(
+        tags$div(
+          style = "color: red; font-weight: bold;",
+          "Please ensure that there is one answer for each severity and that 'Minimum' < 'Likely' < 'Maximum'."
+        )
+      )
+    }
+
+    if (length(sev_values) == 3 &&
+        sev_values["minimum"] <= sev_values["likely"] &&
+        sev_values["likely"] <= sev_values["maximum"]) {
+      return(NULL)
+    } else {
+      return(
+        tags$div(
+          style = "color: red; font-weight: bold;",
+          "Please ensure that 'Minimum' <= 'Likely' <= 'Maximum' in severity."
+        )
+      )
+    }
+  })
+}
+
+render_severity_boolean_warning <- function(groupTag, answers) {
+  focal_ans <- answers |>
+    filter(question == groupTag) |>
+    select(minimum, likely, maximum) |>
+    unlist()
+
+  if(length(focal_ans) == 0){
+    return(NULL)
+  }
+
+  renderUI({
+    # Ensure names are "min", "likely", "max"
+    sev_values <- focal_ans
+    names(sev_values) <- c("minimum", "likely", "maximum")
+    # Conditional dependency checks
+    if (all(is.na(sev_values))) {
+      return(NULL)
+    }
+
+    if (!is.na(sev_values["minimum"]) &&
+        (is.na(sev_values["likely"]) || is.na(sev_values["maximum"]))) {
+      return(
+        tags$div(
+          style = "color: red; font-weight: bold;",
+          "If 'Minimum' is checked, both 'Likely' and 'Maximum' must also be checked"
+        )
+      )
+    }
+    
+    if (!is.na(sev_values["likely"]) && is.na(sev_values["maximum"])) {
+      return(
+        tags$div(
+          style = "color: red; font-weight: bold;",
+          "If 'Likely' is checked, 'Maximum' must also be checked"
+        )
+      )
+    }
+    
+  })
 }
 
 extract_answers <- function(questions, groupTag, input){
@@ -157,7 +222,6 @@ extract_answers <- function(questions, groupTag, input){
   input_names <- character(0)
   
   for (i in seq(id)) {
-    # options <- fromJSON(quesExt$list[i])$text
     options <- fromJSON(quesExt$list[i])$opt
     input_names <- c(input_names, glue("{groupTag}{id[i]}_{options}"))
   }
@@ -187,14 +251,8 @@ get_points_as_table <- function(questions){
   # Loop over each group and parse its list column
   points_all <- lapply(groups, function(grp) {
     points <- questions |> 
-      filter(group == grp) #|> 
-      # pull(list)
-    
-    # lapply(seq_along(points), function(i) {
-    #   df <- fromJSON(points[i])
-    #   df$question <- paste0(grp, i)
-    #   df$points <- as.character(df$points)
-    #   df
+      filter(group == grp) 
+
     lapply(seq(1,nrow(points)), function(i) {
       df <- fromJSON(points$list[i])
       df$question <- paste0(grp, points$number[i])
@@ -247,34 +305,45 @@ get_inputs_as_df <- function(answers, input){ ##, points_main
       pivot_wider(names_from = answer, values_from = option) |> 
       rename_with(tolower) |> 
       as.data.frame()
+    
+      # Ensure "min", "lik", and "max" columns exist
+      required_cols <- c("minimum", "likely", "maximum")
+      missing_cols <- setdiff(required_cols, names(final_opt))
+      if (length(missing_cols) > 0) {
+        for (col in missing_cols) {
+          final_opt[[col]] <- NA  # Add missing columns with NA
+        }
+      }
+  }
+    
+  # Extract justifications
+  input_names_just <- names(input)[grepl("^just", names(input))]
+  # Remove justifications for ENT Paths as they are not collected here
+  input_names_just <- input_names_just[-grep("_",input_names_just)]  
+  respJust <- sapply(input_names_just, function(i) input[[i]])
+
+
+  # Create a full justification dataframe
+  just_df <- tibble(
+    question = toupper(sub("^just", "", input_names_just)),
+    justification = unname(respJust)
+  )
+
+  if(nrow(just_df) > 0){
+  # Merge with final_opt to include all justifications
+  final_opt <- full_join(final_opt, just_df, by = "question")
+  } else {
+    final_opt$justification <- NA
   }
 
-    input_names_just <- names(input)[grepl("^just", names(input))]
-    # Remove justifications for ENT Paths as they are not collected here
-    input_names_just <- input_names_just[-grep("_",input_names_just)]  
-    respJust <- sapply(input_names_just, function(i) input[[i]])
-
-
-    # Create a full justification dataframe
-    just_df <- tibble(
-      question = toupper(sub("^just", "", input_names_just)),
-      justification = unname(respJust)
-    )
-
-    if(nrow(just_df) > 0){
-    # Merge with final_opt to include all justifications
-    final_opt <- full_join(final_opt, just_df, by = "question")
-    } else {
-      final_opt$justification <- NA
-    }
-
-    final_opt <- final_opt |> filter(!is.na(question),
-                                     !(is.na(minimum) & 
-                                         is.na(likely) & 
-                                         is.na(maximum) & 
-                                         (is.na(justification) | 
-                                            justification == "")))
-      return(final_opt)
+  final_opt <- final_opt |>
+    filter(!is.na(question),
+           !(is.na(minimum) &
+               is.na(likely) &
+               is.na(maximum) &
+               (is.na(justification) |
+                  justification == "")))
+  return(final_opt)
 }
 
 
@@ -300,6 +369,15 @@ get_inputs_path_as_df <- function(answers, input){ ## , points_path
       pivot_wider(names_from = answer, values_from = option) |> 
       rename_with(tolower) |> 
       as.data.frame()
+    
+    # Ensure "min", "lik", and "max" columns exist
+    required_cols <- c("minimum", "likely", "maximum")
+    missing_cols <- setdiff(required_cols, names(final_opt))
+    if (length(missing_cols) > 0) {
+      for (col in missing_cols) {
+        final_opt[[col]] <- NA  # Add missing columns with NA
+      }
+    }
   }
 
   input_names_just <- names(input)[grepl("^justEnt", names(input))]
@@ -399,7 +477,6 @@ answers_path_2_logical <- function(df, questions) {
   return(result)
 }
 
-
 check_minmax_completeness <- function(df, all = FALSE) {
   
   if (!all) {
@@ -434,9 +511,6 @@ rpert_from_tag <- function(answers, tag, iterations = 5000, lambda = 1) {
   res <- rpert(iterations, points[1], points[2], points[3], lambda)
   return(res)
 }
-
-rpert_from_tag(answers, tag = "ENT1", iterations = 5000, lambda = 1)
-
 
 generate_inclusion_exclusion_score <- function(score_matrix) {
   n <- ncol(score_matrix)

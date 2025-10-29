@@ -12,4 +12,6 @@ library(tidyverse)
 library(glue)
 library(jsonlite)
 
+library(mc2d) # for monte carlo simulations
+
 op <- options(digits.secs = 0)

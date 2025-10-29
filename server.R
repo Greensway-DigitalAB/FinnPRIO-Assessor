@@ -17,6 +17,7 @@ server <- function(input, output, session) {
   questions <- reactiveValues(main = NULL, entry = NULL)
   points <- reactiveValues(main = NULL, entry = NULL, table2 = NULL, table3 = NULL)
   answers <- reactiveValues(main = NULL, entry = NULL)
+  frominput <- reactiveValues(main = NULL, entry = NULL)
 
   
   shinyDirChoose(input, "db_folder", roots = volumes, session = session,  
@@ -161,18 +162,18 @@ server <- function(input, output, session) {
                        names_to = "ENT2", values_to = "Points") |> 
           mutate(ENT2 = gsub("\\.", " ", ENT2)) |> 
           rename(ENT3 = ENT3.ENT2)
-table2_exp <<- points$table2
+# table2_exp <<- points$table2
         points$table3 <- table3 |> 
           pivot_longer(-EST3.EST2,
                        names_to = "EST2", values_to = "Points") |> 
           mutate(EST2 = gsub("\\.", " ", EST2)) |> 
           rename(EST3 = EST3.EST2)
-table3_exp <<- points$table3
+# table3_exp <<- points$table3
         
         points$main <- get_points_as_table(questions$main)
-pointsmain_exp <<- points$main
+# pointsmain_exp <<- points$main
         points$entry <- get_points_as_table(questions$entry)
-pointsentry_exp <<- points$entry
+# pointsentry_exp <<- points$entry
      } #else { stop() }
         setProgress(1)
     }, message = "Läser in bakgrund data")
@@ -270,7 +271,7 @@ pointsentry_exp <<- points$entry
 
   })
   
-  ### Assessments summary ----
+  ## Assessments summary ----
   output$selectedAssName <- renderUI({
     if (is.null(input$assessments_rows_selected)) {
       tagList(icon("file", class = "fas"), "Selected Assessment")
@@ -283,9 +284,6 @@ pointsentry_exp <<- points$entry
     req(input$assessments_rows_selected)
     
     ass_info <- assessments$selected
-    
-    # assessments$entry
-    # ass_threat <- assessments$threats
     
     # Build card UI
     tagList(
@@ -326,7 +324,7 @@ pointsentry_exp <<- points$entry
     
   })
   
-  #### Pest summary ----
+  ### Pest summary ----
   # Once selected the species, show all you know about it
   output$species_summary <- renderUI({
     req(assessments$selected)
@@ -353,7 +351,7 @@ pointsentry_exp <<- points$entry
   })
   
   
-  #### Potential entry checkboxes ----
+  ### Potential entry checkboxes ----
   output$entrypath_checkboxes <- renderUI({
     req(pathways$data)
     req(assessments$selected)
@@ -428,7 +426,7 @@ pointsentry_exp <<- points$entry
 #     
 #   })
   
-  #### Threat checkboxes (pull from DB table Threatened Sectors) ----
+  ### Threat checkboxes (pull from DB table Threatened Sectors) ----
   output$threat_checkboxes <- renderUI({
     req(assessments$selected)
     req(threats$data)
@@ -470,10 +468,10 @@ pointsentry_exp <<- points$entry
   
   ## Modal for new assessment ----
   observeEvent(input$new_ass, {
-    # assessments$selected <- NULL
-    # assessments$entry <- NULL
-    # answers$main <- NULL
-    # answers$entry <- NULL
+    assessments$selected <- NULL
+    assessments$entry <- NULL
+    answers$main <- NULL
+    answers$entry <- NULL
     req(pests$data)
     req(assessors$data)
     req(pathways$data)
@@ -520,28 +518,6 @@ pointsentry_exp <<- points$entry
   })
 
   ## Questionaries ----
-#   observe({
-#     req(questions$main)
-#     # expanswer <<- reactiveValuesToList(input)
-#     # expquest <<- questions$main
-#     # expquest2 <<- questions$entry
-#     pathways <- names(assessments$entry)
-#     answ_ent <- extract_answwers(questions$main, groupTag = "ENT", input)
-#     answ_est <- extract_answwers(questions$main, groupTag = "EST", input)
-#     answ_imp <- extract_answwers(questions$main, groupTag = "IMP", input)
-#     answ_man <- extract_answwers(questions$main, groupTag = "MAN", input)
-#     answers$main <- c(answ_ent, answ_est, answ_imp, answ_man)
-#     answers$entry <- extract_answwers_entry(questions$entry, groupTag = "ENT", 
-#                                             path = pathways, input)
-# testans <<- answers$main
-# testpath <<- answers$entry
-#     # print(points$main)
-# # print(answers$main)
-# 
-#     # get_inputs_as_df(answers$main, points$main) |> print()
-#   })
-# TODO error message for order of minimum likely maximum ----
-  
   output$questionarie <- renderUI({
     req(questions$main)
     req(answers$main)
@@ -584,6 +560,7 @@ pointsentry_exp <<- points$entry
                                                    answers_2_logical(answers$main, questions$main)),
                                   #        # ),
                                   # column(7,
+                                  # uiOutput("ENT1_warning"),
                                   br(),
                                   textAreaInput(glue("justEnt{id}"),
                                                 label = "Justification",
@@ -722,7 +699,13 @@ pointsentry_exp <<- points$entry
         tabPanel(id = "sim", 
                  title = "Simulation",
                  br(),
-                 DTOutput("simulations"),
+                 tagList(
+                   div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                       h3(strong("All Simulations for this Assessment"), style = "color:#7C6A56"),
+                       DTOutput("simulations")
+                       )
+                   ),
+                 br(),
                  h4(strong("Run New Simulation"), style = "color:#7C6A56"),
                  fluidRow(
                    column(8,
@@ -731,16 +714,21 @@ pointsentry_exp <<- points$entry
                                 h4(strong("Settings"), style = "color:#7C6A56"),
                                 fluidRow(
                                   column(6,
-                                         numericInput("n_sim", "Iterations:", value = 5000, min = 1000, step = 100),
-                                         # numericInput("seed_sim", "Random Seed:", value = 12345, min = 1),
-                                         numericInput("lambda_sim", "Lambda:", value = 1, min = 0, 
-                                                      max = 100, step = 1)
+                                         # numericInput("seed_sim", "Random Seed:", value = default_sim$seed, min = 1),
+                                         numericInput("n_sim", "Iterations:", 
+                                                      value = default_sim$n_sim, 
+                                                      min = 1000, step = 100),
+                                         numericInput("lambda_sim", "Lambda:", 
+                                                      value = default_sim$lambda, 
+                                                      min = 0, max = 100, step = 1)
                                   ),
                                   column(6,
                                          numericInput("w1_sim", "Weight 1\n(economic impact):", 
-                                                      value = 0.5, min = 0, max = 1, step = 0.01),
+                                                      value = default_sim$w1, 
+                                                      min = 0, max = 1, step = 0.01),
                                          numericInput("w2_sim", "Weight 2\n(environ. and social impacts):", 
-                                                      value = 0.5, min = 0, max = 1, step = 0.01)
+                                                      value = default_sim$w2, 
+                                                      min = 0, max = 1, step = 0.01)
                                   )
                                 )
                             )
@@ -771,7 +759,82 @@ pointsentry_exp <<- points$entry
     )
   })
   
-  ### Questionaries pathways ----
+  ### Control all inputs dynamically ----
+  observe({
+    req(questions$main)
+    # req(assessments$entry)
+    answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
+    answ_est <- extract_answers(questions$main, groupTag = "EST", input)
+    answ_imp <- extract_answers(questions$main, groupTag = "IMP", input)
+    answ_man <- extract_answers(questions$main, groupTag = "MAN", input)
+    answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
+# print(answ_all)    
+    frominput$main <- get_inputs_as_df(answ_all, input) #, points$main
+    
+    if (!is.null(assessments$entry)) {
+      answ_ent_path <- extract_answers_entry(questions$entry, groupTag = "ENT", 
+                                        path = names(assessments$entry), 
+                                        input)
+      
+      any_non <- any(!lapply(answ_ent_path, is.null) |> unlist())
+      
+      if(any_non){
+        frominput$entry <- get_inputs_path_as_df(answ_ent_path, input) 
+      } else {
+        frominput$entry <- NULL
+      }
+    } else {
+      frominput$entry <- NULL
+    }
+# print(frominput$entry)
+  })
+  
+  # for (group in c("ENT1", "EST1", "EST2", "IMP1", "IMP2", "MAN1")) {
+  #   local({
+  #     g <- group
+  #     answers <- extract_answers(questions$main, g, input)
+  #     print(answers)
+  #     # output[[paste0(g, "_warning")]] <- render_severity_warning(g, answers)
+  #   })
+  # }
+  #### Error message for order of minimum likely maximum ----
+  lapply(c("ENT1", "EST1", "EST2", "EST3", "EST4", "IMP1", "IMP3", 
+           "MAN1", "MAN2", "MAN3", "MAN4", "MAN5"), function(tag){
+    output[[paste0(tag, "_warning")]] <- renderUI({
+      render_severity_warning(tag, frominput$main)
+    })
+  })
+  
+  lapply(c("IMP2.1", "IMP2.2", "IMP2.3", "IMP4.1", "IMP4.2", "IMP4.3"), function(tag){
+    output[[paste0(tag, "_warning")]] <- renderUI({
+      render_severity_boolean_warning(tag, frominput$main)
+    })
+  })
+  
+  #### Error message for entry pathways questions ----
+  # this is hardcoded for now
+  lapply(c(1:8), function(p){
+    output[[paste0("ENT2A_", p, "_warning")]] <- renderUI({
+      render_severity_warning("ENT2A", frominput$entry |> filter(path == p))
+    })
+  })
+  lapply(c(1:8), function(p){
+    output[[paste0("ENT2B_", p, "_warning")]] <- renderUI({
+      render_severity_warning("ENT2B", frominput$entry |> filter(path == p))
+    })
+  })
+  lapply(c(1:8), function(p){
+    output[[paste0("ENT3_", p, "_warning")]] <- renderUI({
+      render_severity_warning("ENT3", frominput$entry |> filter(path == p))
+    })
+  })
+  lapply(c(1:8), function(p){
+    output[[paste0("ENT4_", p, "_warning")]] <- renderUI({
+      render_severity_warning("ENT4", frominput$entry |> filter(path == p))
+    })
+  })
+  
+  ## Questionaries pathways ----
   output$questionariePath <- renderUI({
     req(assessments$selected)
     req(assessments$entry)
@@ -859,7 +922,7 @@ pointsentry_exp <<- points$entry
     return(ui)
   })
   
-  ### Save Assessment ----
+  ## Save Assessment ----
   # Mark as finished and valid
   observeEvent(input$ass_finish, {
     if (input$ass_finish == TRUE) {
@@ -902,8 +965,9 @@ pointsentry_exp <<- points$entry
                               format(now("CET"), "%Y-%m-%d %H:%M:%S"), 
                               assessments$selected$idAssessment))
     } else {
-      dbExecute(con(), "UPDATE assessments SET finished = ? WHERE idAssessment = ?",
-                params = list(0, 
+      updateCheckboxInput(session, "ass_valid", value = FALSE)
+      dbExecute(con(), "UPDATE assessments SET finished = ?, valid = ? WHERE idAssessment = ?",
+                params = list(0, 0,
                               assessments$selected$idAssessment))
     }
     assessments$data <- dbReadTable(con(), "assessments")
@@ -918,7 +982,12 @@ pointsentry_exp <<- points$entry
   
   observeEvent(input$ass_valid, {
     if (assessments$selected$finished) {
-# TODO is there another for the species also valid? ----
+### TODO is there another for the species also valid? ----
+      # shinyalert(
+      #   title = "Incomplete Pathway Assessment",
+      #   text = "Please answer all pathway assessment questions before saving.",
+      #   type = "warning"
+      # )
       dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
                 params = list(as.integer(input$ass_valid),
                               assessments$selected$idAssessment))
@@ -937,6 +1006,7 @@ pointsentry_exp <<- points$entry
   # Save Assessment
   observeEvent(input$save, {
     
+    # Save assessment general info
     dbExecute(con(), "UPDATE assessments SET endDate = ?, 
                                               potentialEntryPathways = ?,
                                               reference = ?, 
@@ -947,14 +1017,7 @@ pointsentry_exp <<- points$entry
                             input$ass_reftext,
                             input$ass_notes,
                             assessments$selected$idAssessment))
-    
-    # # Save references
-    # dbExecute(con(), "UPDATE assessments SET reference = ? WHERE idAssessment = ?",
-    #           params = list(input$ass_reftext, assessments$selected$idAssessment))
-    # 
-    # dbExecute(con(), "UPDATE assessments SET  WHERE idAssessment = ?",
-    #           params = list(input$ass_pot_entry_path_text, assessments$selected$idAssessment))
-    
+
     assessments$data <- dbReadTable(con(), "assessments")
     assessments$selected <- assessments$data[input$assessments_rows_selected, ]
     
@@ -996,13 +1059,13 @@ pointsentry_exp <<- points$entry
     
 
     # Proceed with saving the ANSWERS IN assessment
-    answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
-    answ_est <- extract_answers(questions$main, groupTag = "EST", input)
-    answ_imp <- extract_answers(questions$main, groupTag = "IMP", input)
-    answ_man <- extract_answers(questions$main, groupTag = "MAN", input)
-    answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
-
-    resmain <- get_inputs_as_df(answ_all, input) #, points$main
+    # answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
+    # answ_est <- extract_answers(questions$main, groupTag = "EST", input)
+    # answ_imp <- extract_answers(questions$main, groupTag = "IMP", input)
+    # answ_man <- extract_answers(questions$main, groupTag = "MAN", input)
+    # answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
+    # resmain <- get_inputs_as_df(answ_all, input) #, points$main
+    resmain <- frominput$main 
 
     if (nrow(resmain) == 0) {
       # shinyalert(
@@ -1095,10 +1158,8 @@ pointsentry_exp <<- points$entry
     } else {
       assessments$entry <- NULL
     }
-# print(assessments$entry)
-
+    
     if (!is.null(assessments$entry)) {
-      
       answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
                                          path = names(assessments$entry), 
                                          input)
@@ -1106,8 +1167,8 @@ pointsentry_exp <<- points$entry
       any_non <- any(!lapply(answ_ent, is.null) |> unlist())
       
       if(any_non){
-        resentry <- get_inputs_path_as_df(answ_ent, input) 
-# print(resentry)
+        # resentry <- get_inputs_path_as_df(answ_ent, input) 
+        resentry <- frominput$entry
 
         for (i in 1:nrow(resentry)) {
           # Check if the answer already exists
@@ -1171,9 +1232,11 @@ pointsentry_exp <<- points$entry
     
     tab <- simulations$data |> 
       filter(idAssessment == assessments$selected$idAssessment) |>
-      select(-idAssessment)
+      select(-c(idAssessment,idSimulation))
     
     datatable(tab,
+              colnames = c("Iterarions (actually 'samples')", "Lambda", "Weigth 1", 
+                           "Weight 2", "Date created"),
               selection = "single",
               rownames = FALSE,
               options = list(paging = FALSE,
@@ -1188,7 +1251,17 @@ pointsentry_exp <<- points$entry
       simulations$selected <- NULL
     } else {
       simulations$selected <- simulations$data[input$simulations_rows_selected, ]
+      updateNumericInput(session, "n_sim", value = simulations$selected$iterations)
+      updateNumericInput(session, "lambda_sim", value = simulations$selected$lambda)
+      updateNumericInput(session, "w1_sim", value = simulations$selected$w1)
+      updateNumericInput(session, "w2_sim", value = simulations$selected$w2)
+      
+      simulations$summary <- dbGetQuery(con(), glue("SELECT * FROM simulationSummaries 
+                                               WHERE idSimulation = {simulations$selected$idSimulation}")) |> 
+        select(-c(idSimSummary, idSimulation)) |> 
+        as.data.frame()
     }
+    
   })
   
   observeEvent(input$w1_sim, {
