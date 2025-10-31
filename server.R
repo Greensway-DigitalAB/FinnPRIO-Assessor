@@ -972,12 +972,17 @@ server <- function(input, output, session) {
   
   # Mark as finished and valid
   observeEvent(input$ass_finish, {
+# print(answers$main)
+    req(answers$main)
     if (input$ass_finish == TRUE) {
       ## Check for the main questions
       answers_df <- answers$main |> 
         left_join(questions$main, by = "idQuestion")
-      
+  
+#### TODO not really checking if all questions are complete ----
+# print(answers_df)      
       is_complete_main <- check_minmax_completeness(answers_df) 
+# print(is_complete_main)
 
       if (!is_complete_main) {
         shinyalert(
@@ -996,7 +1001,7 @@ server <- function(input, output, session) {
             filter(idPathway == names(assessments$entry)[p]) |> 
             left_join(questions$entry, by = "idPathQuestion")
           is_complete_entry <- check_minmax_completeness(answers_df, all = TRUE) 
-          
+# print(is_complete_entry)          
           if (!is_complete_entry) {
             shinyalert(
               title = "Incomplete Pathway Assessment",
@@ -1064,12 +1069,12 @@ server <- function(input, output, session) {
   observeEvent(input$save, {
     req(assessments$selected)
     req(assessments$threats)
-    req(frominput$main)
-    req(answers$main)
-    req(answers$entry)
-    req(input$ass_pot_entry_path_text)
+    # req(frominput$main)
+    # req(answers$main)
+    # req(answers$entry)
+    # req(input$ass_pot_entry_path_text)
     
-    save$status <- "Saving..."
+    # save$status <- "Saving..."
     
     # Save assessment general info
     dbExecute(con(), "UPDATE assessments SET endDate = ?, 
@@ -1292,12 +1297,12 @@ server <- function(input, output, session) {
     save$status <- "Saved ✔️"
     save$timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
     
-    # shinyalert(
-    #   title = "Success",
-    #   text = "Assessment saved successfully.",
-    #   type = "success",
-    #   timer = 1000,
-    # )
+    shinyalert(
+      title = "Success",
+      text = "Assessment saved successfully.",
+      type = "success",
+      timer = 1000,
+    )
     
   })
   
@@ -1469,10 +1474,10 @@ server <- function(input, output, session) {
   
   output$sim_results <- renderDT({
     req(simulations$summary)
-    
     datatable(simulations$summary |> 
                 mutate(variable = c("Entry A*", "Entry B**", "Establishment", 
-                                    "Invasion A*", "Invasion B**", "Impact", 
+                                    "Invasion A*", "Invasion B**", "Impact",
+                                    "Overall Risk A*", "Overall Risk B**",
                                     "Preventavility", "Controlability", "Manageability")),
               rownames = FALSE,
               colnames = c("Variable", "Min", "5th Percentile", "25th Percentile", 

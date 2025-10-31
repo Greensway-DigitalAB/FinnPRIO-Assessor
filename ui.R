@@ -11,16 +11,16 @@ navbarPage("FinnPRIO-Assessor",
                                          DTOutput("assessments")
                                          ),
                                   column(4,
-                                         h3(strong("Filters"), style = "color:#7C6A56"),
-                                         selectInput("filter_pest", "Select Pest Species", 
-                                                     choices = NULL),
-                                         selectInput("filter_assessor", "Select User", 
-                                                     choices = NULL),
-                                         checkboxGroupInput("filter_entry_path",
-                                                            label = "Select entry pathways",
-                                                            choices = NULL,
-                                                            inline = FALSE),
-                                         br(),
+                                         # h3(strong("Filters"), style = "color:#7C6A56"),
+                                         # selectInput("filter_pest", "Select Pest Species", 
+                                         #             choices = NULL),
+                                         # selectInput("filter_assessor", "Select User", 
+                                         #             choices = NULL),
+                                         # checkboxGroupInput("filter_entry_path",
+                                         #                    label = "Select entry pathways",
+                                         #                    choices = NULL,
+                                         #                    inline = FALSE),
+                                         # br(),
                                          h4(strong("Create New Assessment"), style = "color:#7C6A56"),
                                          actionButton("new_ass", "Create Assessment")
                                   )
@@ -102,6 +102,7 @@ navbarPage("FinnPRIO-Assessor",
                      fluidPage(
                        # load_ui_content("ui/instructions.R"),
                        includeHTML("www/instructions.html")
+                       # tags$iframe("www/instructions.html")
                      )
             ),
            header = tagList(

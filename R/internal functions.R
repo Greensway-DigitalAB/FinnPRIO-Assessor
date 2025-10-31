@@ -140,7 +140,8 @@ render_quest_tab <- function(tag, qid, question,
 }
 
 render_severity_warning <- function(groupTag, answers) {
-  severity_map <- c(a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9)
+  severity_map <- c(a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9,
+                    j = 10, k = 11, l = 12, m = 13, n = 14, o = 15, p = 16, q = 17)
   focal_ans <- answers |> 
     filter(question == groupTag) |> 
     select(minimum, likely, maximum) |> 
@@ -486,9 +487,9 @@ check_minmax_completeness <- function(df, all = FALSE) {
   } else {
     minmax_rows <- df
   }
-  
   # Check for missing values in min, likely, or max
   incomplete <- minmax_rows[is.na(minmax_rows$min) | is.na(minmax_rows$likely) | is.na(minmax_rows$max), ]
+# print(incomplete)  
   
   # Return result
   if (nrow(incomplete) == 0) {
