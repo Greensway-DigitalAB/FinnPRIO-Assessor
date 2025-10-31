@@ -1,4 +1,4 @@
-production <- FALSE
+# production <- FALSE
 library(shiny)
 library(shinyjs)
 library(shinyFiles)
