@@ -276,11 +276,16 @@ server <- function(input, output, session) {
   
   ## Assessments summary ----
   output$selectedAssName <- renderUI({
-    if (is.null(input$assessments_rows_selected)) {
-      tagList(icon("file", class = "fas"), "Selected Assessment")
-    } else {
-      tagList(icon("file-lines", class = "fas"), assessments$selected$label)
+    # if (is.null(input$assessments_rows_selected)) {
+    #   tagList(icon("file", class = "fas"), "Selected Assessment")
+    # } else {
+    #   tagList(icon("file-lines", class = "fas"), assessments$selected$label)
+    # }
+    res <- tagList(icon("file", class = "fas"), "Selected Assessment")
+    if (!is.null(input$assessments_rows_selected)) {
+      res <- tagList(icon("file-lines", class = "fas"), assessments$selected$label)
     }
+    return(res)
   })
   
   output$assessment_summary <- renderUI({
@@ -972,22 +977,32 @@ server <- function(input, output, session) {
   
   # Mark as finished and valid
   observeEvent(input$ass_finish, {
-# print(answers$main)
     req(answers$main)
     if (input$ass_finish == TRUE) {
       ## Check for the main questions
       answers_df <- answers$main |> 
         left_join(questions$main, by = "idQuestion")
   
-#### TODO not really checking if all questions are complete ----
-# print(answers_df)      
+    ## check if all questions are complete
+      all_req_main <- all(questions$main |> 
+                            filter(type == "minmax") |> 
+                            pull(idQuestion) %in% answers_df$idQuestion)
+      if (!all_req_main) {
+        shinyalert(
+          title = "Incomplete Assessment",
+          text = "Please answer all assessment questions before saving.",
+          type = "warning"
+        )
+        updateCheckboxInput(session, "ass_finish", value = FALSE)
+        return()
+      } 
+
       is_complete_main <- check_minmax_completeness(answers_df) 
-# print(is_complete_main)
 
       if (!is_complete_main) {
         shinyalert(
           title = "Incomplete Assessment",
-          text = "Please answer all main assessment questions before saving.",
+          text = "Please answer all options in the assessment questions before saving.",
           type = "warning"
         )
         updateCheckboxInput(session, "ass_finish", value = FALSE)
@@ -1000,19 +1015,31 @@ server <- function(input, output, session) {
           answers_df <- answers$entry |> 
             filter(idPathway == names(assessments$entry)[p]) |> 
             left_join(questions$entry, by = "idPathQuestion")
+
+          all_req_entry <- all(questions$entry |> 
+                                 pull(idPathQuestion) %in% answers_df$idPathQuestion)
+
+          if (!all_req_entry) {
+            shinyalert(
+              title = "Incomplete Pathway Assessment",
+              text = "Please answer all questions for each pathway before saving.",
+              type = "warning"
+            )
+            updateCheckboxInput(session, "ass_finish", value = FALSE)
+            return()
+          }
+
           is_complete_entry <- check_minmax_completeness(answers_df, all = TRUE) 
-# print(is_complete_entry)          
           if (!is_complete_entry) {
             shinyalert(
               title = "Incomplete Pathway Assessment",
-              text = "Please answer all pathway assessment questions before saving.",
+              text = "Please answer all options on each pathway question before saving.",
               type = "warning"
             )
+            updateCheckboxInput(session, "ass_finish", value = FALSE)
             return()
           }
-          
         }
-        
       } 
       
       # If all checks pass
@@ -1030,6 +1057,8 @@ server <- function(input, output, session) {
                               assessments$selected$idAssessment))
       # save$status <- "Pending"
     }
+    
+    # reload the assessments data
     assessments$data <- dbReadTable(con(), "assessments")
     assessments$selected <- assessments$data[input$assessments_rows_selected, ]
     assessments$selected <- assessments$selected |> 
@@ -1038,19 +1067,38 @@ server <- function(input, output, session) {
       mutate(label = paste(scientificName, eppoCode, 
                            paste(firstName, lastName), startDate, 
                            sep = "_"))
-  })
+  }, ignoreInit = TRUE)
   
   observeEvent(input$ass_valid, {
     if (assessments$selected$finished) {
-### TODO is there another for the species also valid? ----
-      # shinyalert(
-      #   title = "Incomplete Pathway Assessment",
-      #   text = "Please answer all pathway assessment questions before saving.",
-      #   type = "warning"
-      # )
-      dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
-                params = list(as.integer(input$ass_valid),
-                              assessments$selected$idAssessment))
+      others <- assessments$data |> 
+        filter(idAssessment != assessments$selected$idAssessment,
+               idPest == assessments$selected$idPest,
+               valid == 1)
+print(others)
+      if(nrow(others) > 0) {
+  ### TODO is there another assessment for the species also valid? ----
+        shinyalert(
+          title = "There is another assessment marked as valid",
+          text = "For this species, there is another assessment marked as valid. \n Would you lke to make this the valid one?",
+          type = "info", 
+          showConfirmButton = TRUE, showCancelButton = TRUE,
+          confirmButtonText = "YES", cancelButtonText = "No",  
+          timer = 0, animation = TRUE,
+          callbackR = function(value) { 
+            if (value) {
+              
+              dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
+                        params = list(as.integer(input$ass_valid),
+                                      assessments$selected$idAssessment))
+            }})  # END if Value, callback, shinyAlert
+        
+        
+      } else {
+        dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
+                  params = list(as.integer(input$ass_valid),
+                                assessments$selected$idAssessment))
+      }
       
       assessments$data <- dbReadTable(con(), "assessments")
       assessments$selected <- assessments$data[input$assessments_rows_selected, ]
@@ -1063,10 +1111,11 @@ server <- function(input, output, session) {
       
       # save$status <- "Pending"
     }
-  })
+  }, ignoreInit = TRUE)
   
   # Save Assessment
   observeEvent(input$save, {
+    
     req(assessments$selected)
     req(assessments$threats)
     # req(frominput$main)
@@ -1304,7 +1353,7 @@ server <- function(input, output, session) {
       timer = 1000,
     )
     
-  })
+  }, ignoreInit = TRUE)
   
   # Simulations ----
   output$simulations <- renderDT({

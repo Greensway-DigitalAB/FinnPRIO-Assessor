@@ -2,6 +2,7 @@
 library(shiny)
 library(shinyjs)
 library(shinyFiles)
+library(shinythemes)
 library(shinyalert)
 library(shinyWidgets)
 
