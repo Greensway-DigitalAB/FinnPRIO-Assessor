@@ -122,7 +122,7 @@ simulation <- function(answers, answers_entry,
     )
     
   } # end for pathways
-print(dim(scorePathway))
+# print(dim(scorePathway))
   
   ENTRYA <- generate_inclusion_exclusion_score(scorePathway[,,"A"])
   # ENTRYA <- scorePathway[,1,"A"]+scorePathway[,2,"A"] - scorePathway[,1,"A"]*scorePathway[,2,"A"]
