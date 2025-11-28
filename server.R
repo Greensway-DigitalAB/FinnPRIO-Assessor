@@ -53,9 +53,11 @@ server <- function(input, output, session) {
                          multiple = FALSE, style = "margin-top: 20px;")
       )
     } else {
+        print(input$db_file$files)
+      l_path <- length(input$db_file$files$`0`)
       tagList(
         # h3("Working with", db_path(), load$timestamp)#,
-        h3("Working with", input$db_file$files$`0`[[3]]),
+        h3("Working with", input$db_file$files$`0`[[l_path]]),
         h5(db_path())#,
         # actionButton("unload_db", "Unload database")
       )
@@ -1771,7 +1773,7 @@ server <- function(input, output, session) {
   observeEvent(input$confirm_assessor, {
     dbExecute(con(), "INSERT INTO assessors(firstName, lastName, email) VALUES(?,?,?)",
               params = list(input$new_name, input$new_last, input$new_email))
-    assessors$data <- dbReadTable(con(), "users")
+    assessors$data <- dbReadTable(con(), "assessors")
     assessors$data$label <- paste(assessors$data$firstName, assessors$data$lastName)
     removeModal()
     # update_dropdowns()
