@@ -650,7 +650,7 @@ report_assessment <- function(connection, assessments_selected, questions_main, 
     body_add_par("Assessments", style = "heading 2") |>
     body_add_par("")
     # body_add_fpar(intro_text) |> 
-  
+
   ## entry
   doc <- body_add_par(doc, "Entry", style = "heading 3")
   doc <- add_answers_to_report(doc, "ENT", questions_main, answers_main, answers_logical)
@@ -842,4 +842,14 @@ add_answers_path_to_report <- function(doc, tag, questions_entry,
   # doc <- doc |> body_add_break()
   
   return(doc)
+}
+
+
+## Remove all inputs for a given prefix
+remove_inputs_by_prefix <- function(input, prefix) {
+  input_names <- names(input)
+  to_remove <- input_names[grepl(paste0("^", prefix), input_names)]
+  for (name in to_remove) {
+    removeUI(name)
+  }
 }

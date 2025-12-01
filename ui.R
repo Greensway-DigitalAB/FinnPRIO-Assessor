@@ -1,7 +1,7 @@
 navbarPage("FinnPRIO-Assessor",
             tabPanel("Assessments",
                      tabsetPanel(id = "all_assessments",
-                        tabPanel(#id = "all_assessments", 
+                        tabPanel(
                                 title = tagList(icon("laptop-file", class = "fas"), "Assessments"),
                                 value = 1,
                                 fluidPage(
@@ -11,16 +11,6 @@ navbarPage("FinnPRIO-Assessor",
                                          DTOutput("assessments")
                                          ),
                                   column(4,
-                                         # h3(strong("Filters"), style = "color:#7C6A56"),
-                                         # selectInput("filter_pest", "Select Pest Species", 
-                                         #             choices = NULL),
-                                         # selectInput("filter_assessor", "Select User", 
-                                         #             choices = NULL),
-                                         # checkboxGroupInput("filter_entry_path",
-                                         #                    label = "Select entry pathways",
-                                         #                    choices = NULL,
-                                         #                    inline = FALSE),
-                                         # br(),
                                          h4(strong("Create New Assessment"), style = "color:#7C6A56"),
                                          actionButton("new_ass", "Create Assessment"),
                                          br(),
@@ -33,29 +23,24 @@ navbarPage("FinnPRIO-Assessor",
                                                                  style = "color:black; font-size: 12px;"),
                                                        class = "bubble"),
                                                        value = FALSE)
+                                     # h3(strong("Filters"), style = "color:#7C6A56"),
+                                     # selectInput("filter_pest", "Select Pest Species", 
+                                     #             choices = NULL),
+                                     # selectInput("filter_assessor", "Select User", 
+                                     #             choices = NULL),
+                                     # checkboxGroupInput("filter_entry_path",
+                                     #                    label = "Select entry pathways",
+                                     #                    choices = NULL,
+                                     #                    inline = FALSE),
+                                     # br(),
                                   )
-                                      
-                                # sidebarLayout(
-                                #     # Sidebar with filters: 
-                                #     sidebarPanel(
-                                    #   
-                                    # ),
-                                    # mainPanel(
-                                      # uiOutput("modal_new_assessment"),
-                                    # )
-                                # )
                                 )
                               ), 
-                        tabPanel(#id = "selected_assessments",
+                        tabPanel(
                                  title = uiOutput("selectedAssName"),
                                  value = 2,
                                  br(),
                                  fluidRow(
-                                   # # style = "margin:20px; padding:10px; border:1px solid #ccc;",
-                                   # # style = "margin:20px",
-                                   # column(width = 2, offset = 10,
-                                   #        actionButton("save", "Save Assessment")
-                                   # )
                                    tags$style(
                                    HTML("
                                        #save {
@@ -79,28 +64,14 @@ navbarPage("FinnPRIO-Assessor",
                       )
                     # )
             ),
-            # tabPanel("Simulation",
-            #           fluidPage(
-            #             br(),
-            #             column(8,
-            #                    h3(strong("All Simulations"), style = "color:#7C6A56")#,
-            #                    # DTOutput("simulations")
-            #             ),
-            #             column(4,
-            #                    h4(strong("Run New Simulation"), style = "color:#7C6A56"),
-            #                    actionButton("all_sim", "Run All Simulation")
-            #             )
-            #           )
-            # ),
             tabPanel("Pest-species data",
                     fluidPage(
                       h3(strong("Pest Information"), style = "color:#7C6A56"),
                       column(8,
-                             tableOutput("pests")
+                             DTOutput("pests")
                       ),
                       column(4,
                              actionButton("new_pest", "+ Add Pest")
-                             # uiOutput("species_summary")
                       )
                     )
             ),
@@ -110,14 +81,11 @@ navbarPage("FinnPRIO-Assessor",
             ),
             tabPanel("Instructions",
                      fluidPage(
-                       # load_ui_content("ui/instructions.R"),
                        includeHTML("www/instructions.html")
-                       # tags$iframe("www/instructions.html")
                      )
             ),
            header = tagList(
-             # Initialize shinyjs
-             useShinyjs(),
+             useShinyjs(), # Initialize shinyjs
              tags$head(
                tags$link(rel = "shortcut icon", href = "./img/bug-slash-solid-full-gray.svg"),
                # Include our custom CSS
@@ -125,21 +93,12 @@ navbarPage("FinnPRIO-Assessor",
              ),
              
              fluidRow(
-               # style = "margin:20px; padding:10px; border:1px solid #ccc;",
                style = "margin:20px",
                       uiOutput("file_input_ui"),
-                      # uiOutput("file_path_ui")
-               #        ),
+                      # uiOutput("file_path_ui") ## in case we want to work with uploading the file
                uiOutput("unload_db_ui")
               )
              ),
-           # footer = tagList(
-           #   fluidRow(
-           #     style = "margin:20px",
-           #     column(width = 4,
-           #            
-           #            )
-           #     )
-           #   ),
+           # position = "fixed-top",
            theme = shinythemes::shinytheme("sandstone")
 )

@@ -53,7 +53,7 @@ server <- function(input, output, session) {
                          multiple = FALSE, style = "margin-top: 20px;")
       )
     } else {
-        print(input$db_file$files)
+        # print(input$db_file$files)
       l_path <- length(input$db_file$files$`0`)
       tagList(
         # h3("Working with", db_path(), load$timestamp)#,
@@ -242,8 +242,18 @@ server <- function(input, output, session) {
     }
   )
   
-  ## when selecting assessment
+  ### when selecting assessment ----
   observeEvent(input$assessments_rows_selected, {
+    ## clear all input fields
+    # removeUI(""))
+    remove_inputs_by_prefix(input, "ENT")
+    remove_inputs_by_prefix(input, "EST")
+    remove_inputs_by_prefix(input, "MAN")
+    remove_inputs_by_prefix(input, "IMP")
+    frominput$main <- NULL
+    frominput$entry <- NULL
+    
+    ## If no selection, clear selected assessment
     if (is.null(input$assessments_rows_selected)) {
       assessments$selected <- NULL
       assessments$entry <- NULL
@@ -359,6 +369,17 @@ server <- function(input, output, session) {
     filename = function() { paste0("assessment_report_", assessments$selected$label, ".docx") },
     content = function(file) {
       req(assessments$selected)
+      # Check if assessment is finished
+      if (is.null(assessments$selected$finished) || !assessments$selected$finished) {
+        shinyalert(
+          title = "Assessment Not Finished",
+          text = "You cannot download the report because the assessment is not completed.",
+          type = "error"
+        )
+        return(NULL)  # Stop the download
+      }
+      
+      # Proceed if finished
       file_path <- report_assessment(con(), assessments$selected, questions$main, answers$main, 
                                      assessments$entry, questions$entry, answers$entry, 
                                      simulations$data)
@@ -833,7 +854,7 @@ server <- function(input, output, session) {
       answ_ent_path <- extract_answers_entry(questions$entry, groupTag = "ENT", 
                                         path = names(assessments$entry), 
                                         input)
-      
+
       any_non <- any(!lapply(answ_ent_path, is.null) |> unlist())
       
       if(any_non){
@@ -903,7 +924,7 @@ server <- function(input, output, session) {
                    textAreaInput(glue("justEnt2A_{x}"),
                                  label = "Justification",
                                  value = answers$entry |> 
-                                   filter(idEntryPathway == x, idPathQuestion == 1) |> 
+                                   filter(idPathway == x, idPathQuestion == 1) |> 
                                    pull(justification),
                                  width = 'auto',
                                  height = '150px',
@@ -924,7 +945,7 @@ server <- function(input, output, session) {
                     textAreaInput(glue("justEnt2B_{x}"),
                                   label = "Justification",
                                   value = answers$entry |> 
-                                    filter(idEntryPathway == x, idPathQuestion == 2) |> 
+                                    filter(idPathway == x, idPathQuestion == 2) |> 
                                     pull(justification),
                                   width = 'auto',
                                   height = '150px',
@@ -944,7 +965,7 @@ server <- function(input, output, session) {
                     textAreaInput(glue("justEnt3_{x}"),
                                   label = "Justification",
                                   value = answers$entry |> 
-                                    filter(idEntryPathway == x, idPathQuestion == 3) |> 
+                                    filter(idPathway == x, idPathQuestion == 3) |> 
                                     pull(justification),
                                   width = 'auto',
                                   height = '150px',
@@ -964,7 +985,7 @@ server <- function(input, output, session) {
                     textAreaInput(glue("justEnt4_{x}"),
                                   label = "Justification",
                                   value = answers$entry |> 
-                                    filter(idEntryPathway == x, idPathQuestion == 4) |> 
+                                    filter(idPathway == x, idPathQuestion == 4) |> 
                                     pull(justification),
                                   width = 'auto',
                                   height = '150px',
@@ -1122,70 +1143,66 @@ server <- function(input, output, session) {
   
   observeEvent(input$ass_valid, {
     req(answers$main)
-    if (assessments$selected$finished) {
-      others <- assessments$data |> 
-        filter(idAssessment != assessments$selected$idAssessment,
-               idPest == assessments$selected$idPest,
-               valid == 1)
-# print(others)
-      if(nrow(others) > 0) {
-  ## is there another assessment for the species also valid?
-        shinyalert(
-          title = "There are other assessment marked as valid",
-          text = "For this species, there is another assessment marked as valid. \n Would you lke to make this the valid one?",
-          type = "info", 
-          showConfirmButton = TRUE, showCancelButton = TRUE,
-          confirmButtonText = "YES", cancelButtonText = "NO",  
-          timer = 0, animation = TRUE,
-          callbackR = function(value) { 
-            if (value) {
-              dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
-                        params = list(0, others$idAssessment))
-              
-              dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
-                        params = list(as.integer(input$ass_valid),
-                                      assessments$selected$idAssessment))
-            }})  # END if Value, callback, shinyAlert
+    if (input$ass_valid){
+      
+      if (assessments$selected$finished) {
+        others <- assessments$data |> 
+          filter(idAssessment != assessments$selected$idAssessment,
+                 idPest == assessments$selected$idPest,
+                 valid == 1)
+        if(nrow(others) > 0) {
+    ## is there another assessment for the species also valid?
+          shinyalert(
+            title = "There are other assessment marked as valid",
+            text = "For this species, there is another assessment marked as valid. \n Would you lke to make this the valid one?",
+            type = "info", 
+            showConfirmButton = TRUE, showCancelButton = TRUE,
+            confirmButtonText = "YES", cancelButtonText = "NO",  
+            timer = 0, animation = TRUE,
+            callbackR = function(value) { 
+              if (value) {
+                dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
+                          params = list(0, others$idAssessment))
+                
+                dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
+                          params = list(as.integer(input$ass_valid),
+                                        assessments$selected$idAssessment))
+              }})  # END if Value, callback, shinyAlert
+          
+          
+        } else {
+          dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
+                    params = list(as.integer(input$ass_valid),
+                                  assessments$selected$idAssessment))
+        }
         
+        assessments$data <- dbReadTable(con(), "assessments")
+        assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+        assessments$selected <- assessments$selected |> 
+          left_join(pests$data, by = "idPest") |>
+          left_join(assessors$data, by = "idAssessor") |> 
+          mutate(label = paste(scientificName, eppoCode, 
+                               paste(firstName, lastName), startDate, 
+                               sep = "_"))
         
+        # save$status <- "Pending"
       } else {
-        dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
-                  params = list(as.integer(input$ass_valid),
-                                assessments$selected$idAssessment))
+        # shinyalert(
+        #   title = "The assessment is not finished",
+        #   text = "Please complete the questionaire and mark it as finished before selecting it as valid.",
+        #   type = "warning"
+        # )
+        updateCheckboxInput(session, "ass_valid", value = FALSE)
       }
-      
-      assessments$data <- dbReadTable(con(), "assessments")
-      assessments$selected <- assessments$data[input$assessments_rows_selected, ]
-      assessments$selected <- assessments$selected |> 
-        left_join(pests$data, by = "idPest") |>
-        left_join(assessors$data, by = "idAssessor") |> 
-        mutate(label = paste(scientificName, eppoCode, 
-                             paste(firstName, lastName), startDate, 
-                             sep = "_"))
-      
-      # save$status <- "Pending"
-    } else {
-      # shinyalert(
-      #   title = "The assessment is not finished",
-      #   text = "Please complete the questionaire and mark it as finished before selecting it as valid.",
-      #   type = "warning"
-      # )
-      updateCheckboxInput(session, "ass_valid", value = FALSE)
-    }
+    } # if not set to true, dont bother
   }, ignoreInit = TRUE)
   
-  # Save Assessment
+  ## Save all answers in Assessment ----
   observeEvent(input$save, {
     
     req(assessments$selected)
     req(assessments$threats)
-    # req(frominput$main)
-    # req(answers$main)
-    # req(answers$entry)
-    # req(input$ass_pot_entry_path_text)
-    
-    # save$status <- "Saving..."
-    
+
     # Save assessment general info
     dbExecute(con(), "UPDATE assessments SET endDate = ?, 
                                               hosts = ?,
@@ -1322,7 +1339,14 @@ server <- function(input, output, session) {
                   params = list(idEntryPath))
         dbExecute(con(), "DELETE FROM pathwayAnswers WHERE idEntryPathway = ?",
                   params = list(idEntryPath))
+        
+        if(!is.null(frominput$entry)){
+          frominput$entry <- frominput$entry |> 
+            filter(path != path_id)
+        }
       }
+      ## to prevent orphan answers, we delete also the answers for this pathway
+      remove_inputs_by_prefix(input, "ENT")
     }
     
     selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
@@ -1335,60 +1359,67 @@ server <- function(input, output, session) {
       assessments$entry <- NULL
     }
     
+# print(assessments$entry)    
     if (!is.null(assessments$entry)) {
       answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
                                          path = names(assessments$entry), 
                                          input)
       
       any_non <- any(!lapply(answ_ent, is.null) |> unlist())
-      
       if(any_non){
-        # resentry <- get_inputs_path_as_df(answ_ent, input) 
         resentry <- frominput$entry
-
-        for (i in 1:nrow(resentry)) {
-          # Check if the answer already exists
-          idQue <- questions$entry |> 
-            filter(group == substr(resentry$question[i], 1, 3),
-                   number == substr(resentry$question[i], 4, nchar(resentry$question[i]))) |> 
-            pull(idPathQuestion)
+# print(resentry)
+        if (!is.null(resentry)) {
+          if(nrow(resentry) >= 1) {
+# print("did i get all the way here?")      
+            for (i in 1:nrow(resentry)) {
+              # Check if the answer already exists
+              idQue <- questions$entry |> 
+                filter(group == substr(resentry$question[i], 1, 3),
+                       number == substr(resentry$question[i], 4, nchar(resentry$question[i]))) |> 
+                pull(idPathQuestion)
+        
+              idEntry <- selected_entries |> 
+                filter(idPathway == resentry$path[i]) |> 
+                pull(idEntryPathway)
+              if (length(idEntry) == 0 | length(idQue) == 0){
+                next
+              }
     
-          idEntry <- selected_entries |> 
-            filter(idPathway == resentry$path[i]) |> 
-            pull(idEntryPathway)
-    
-          existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM pathwayAnswers
-                                        WHERE idEntryPathway = ? AND idPathQuestion = ?",
-                                 params = list(idEntry, idQue))
-          if (existing$count[1] > 0) { 
-            # Update existing answer
-            dbExecute(con(), "UPDATE pathwayAnswers SET min = ?, likely = ?, max = ?, justification = ?
-                              WHERE idEntryPathway = ? AND idPathQuestion = ?",
-                      params = list(
-                        as.character(resentry$minimum[i]),
-                        as.character(resentry$likely[i]),
-                        as.character(resentry$maximum[i]),
-                        as.character(resentry$justification[i]),
-                        as.integer(idEntry),
-                        as.integer(idQue)
-                      )
-            )
-          } else {
-            # Insert new answer
-            dbExecute(con(), "INSERT INTO pathwayAnswers(idEntryPathway, idPathQuestion,
-                              min, likely, max, justification)
-                              VALUES(?, ?, ?, ?, ?, ?)",
-                      params = list(
-                        as.integer(idEntry),
-                        as.integer(idQue),
-                        as.character(resentry$minimum[i]),
-                        as.character(resentry$likely[i]),
-                        as.character(resentry$maximum[i]),
-                        as.character(resentry$justification[i])
-                      )
-            )
+              existing <- dbGetQuery(con(), "SELECT COUNT(*) as count FROM pathwayAnswers
+                                            WHERE idEntryPathway = ? AND idPathQuestion = ?",
+                                     params = list(idEntry, idQue))
+              if (existing$count[1] > 0) { 
+                # Update existing answer
+                dbExecute(con(), "UPDATE pathwayAnswers SET min = ?, likely = ?, max = ?, justification = ?
+                                  WHERE idEntryPathway = ? AND idPathQuestion = ?",
+                          params = list(
+                            as.character(resentry$minimum[i]),
+                            as.character(resentry$likely[i]),
+                            as.character(resentry$maximum[i]),
+                            as.character(resentry$justification[i]),
+                            as.integer(idEntry),
+                            as.integer(idQue)
+                          )
+                )
+              } else {
+                # Insert new answer
+                dbExecute(con(), "INSERT INTO pathwayAnswers(idEntryPathway, idPathQuestion,
+                                  min, likely, max, justification)
+                                  VALUES(?, ?, ?, ?, ?, ?)",
+                          params = list(
+                            as.integer(idEntry),
+                            as.integer(idQue),
+                            as.character(resentry$minimum[i]),
+                            as.character(resentry$likely[i]),
+                            as.character(resentry$maximum[i]),
+                            as.character(resentry$justification[i])
+                          )
+                )
+              }
+            } # end loop resentry
           }
-        }
+        } # end if resentry
       } # end if any non null
     } # end if entry not null
     
@@ -1646,11 +1677,36 @@ server <- function(input, output, session) {
     )
   })
   
-  # Species ----
+  # Pest ----
   # Show species lists
-  output$pests <- renderTable({
+  output$pests <- renderDT({
     req(pests$data)
-    pests$data
+    tab <- pests$data |> 
+      mutate(inEurope = as.logical(inEurope)) |> 
+      left_join(taxa$data, by = "idTaxa") |>
+      left_join(quaran$data, by = "idQuarantineStatus") |>
+      select(scientificName, eppoCode, gbifuuid, vernacularName, synonyms, name.x, name.y, inEurope)
+
+    datatable(tab, 
+              class = 'row-border stripe compact hover',
+              extensions = 'Buttons', 
+              rownames = FALSE, selection = 'single', autoHideNavigation = FALSE,
+              colnames = c("Pest species", "EPPO code", "GBIF UUID", "Common names", 
+                           "Synonyms", "Taxonomic Group", "Quarantine Status", "Present in Europe"),
+              options = list(
+                # columnDefs = list(
+                #   list(targets = c(0), visible = FALSE) # hides 1st column 
+                # ),
+                dom = 'lftpB', #pageLength = 6,
+                stateSave = TRUE,
+                # language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Swedish.json'),
+                searching = TRUE, autoFill = FALSE, ordering = TRUE,
+                lengthMenu = list(c(10, 25, 50, 100, -1),
+                                  c('10', '25', '50', '100','All')),
+                pageLength = 25,
+                lengthChange = TRUE, scrollX = TRUE, scrollY = FALSE,
+                paging = TRUE)
+    )
   })
 
   ## Modal for new pest ----
