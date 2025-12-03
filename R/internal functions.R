@@ -575,6 +575,11 @@ report_assessment <- function(connection, assessments_selected, questions_main, 
                                      WHERE idQuarantineStatus = {as.integer(assessments_selected$idQuarantineStatus)}"))
   taxa <- dbGetQuery(connection, glue("SELECT name FROM taxonomicGroups
                                      WHERE idTaxa = {as.integer(assessments_selected$idTaxa)}"))
+  threatsXassessment <- dbGetQuery(connection, glue("SELECT name 
+                                              FROM threatXassessment
+                                              LEFT JOIN threatenedSectors
+                                                  ON threatXassessment.idThrSect = threatenedSectors.idThrSect
+                                              WHERE idAssessment = {assessments_selected$idAssessment}"))
 
   ids_ent <- as.integer(names(assessments_entry)) |> unique() |> na.omit()
   entries <- dbGetQuery(connection, glue_sql("SELECT idPathway, name FROM pathways WHERE idPathway IN ({ids*})", 
@@ -631,7 +636,7 @@ report_assessment <- function(connection, assessments_selected, questions_main, 
     body_add_par("") |>
     body_add_fpar(
       fpar( ftext("Threathened sectors: ", fp_text_lite(bold = TRUE)),
-            assessments_selected$hosts)
+            paste0(threatsXassessment$name, collapse = ", "))
     ) |>
     body_add_par("") |>
     body_add_fpar(

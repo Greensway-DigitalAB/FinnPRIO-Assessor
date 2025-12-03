@@ -6,11 +6,11 @@ navbarPage("FinnPRIO-Assessor",
                                 value = 1,
                                 fluidPage(
                                   br(),
-                                  column(8,
+                                  column(10,
                                          h3(strong("All Assessments"), style = "color:#7C6A56"),
                                          DTOutput("assessments")
                                          ),
-                                  column(4,
+                                  column(2,
                                          h4(strong("Create New Assessment"), style = "color:#7C6A56"),
                                          actionButton("new_ass", "Create Assessment"),
                                          br(),
@@ -67,10 +67,10 @@ navbarPage("FinnPRIO-Assessor",
             tabPanel("Pest-species data",
                     fluidPage(
                       h3(strong("Pest Information"), style = "color:#7C6A56"),
-                      column(8,
+                      column(10,
                              DTOutput("pests")
                       ),
-                      column(4,
+                      column(2,
                              actionButton("new_pest", "+ Add Pest")
                       )
                     )

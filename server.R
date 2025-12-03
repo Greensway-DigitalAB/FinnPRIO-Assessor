@@ -200,15 +200,25 @@ server <- function(input, output, session) {
              endDate = as_datetime(endDate, tz = "CET")) |> 
       left_join(pests$data, by = "idPest") |>
       left_join(assessors$data, by = "idAssessor") |>
+      left_join(simulations$data |> 
+                  group_by(idAssessment) |> 
+                  mutate(n_simulations = n()) |> 
+                  slice_max(date, n = 1, with_ties = FALSE) |> 
+                  ungroup(),
+                by = "idAssessment") |> 
+      mutate(n_simulations = replace_na(n_simulations, 0)) |> 
       select(idAssessment, scientificName, eppoCode, fullName, 
-             startDate, endDate, finished,	valid,	notes,	version)
+             startDate, endDate, finished,	valid,	notes,	version,
+             iterations, lambda, weight1, weight2, date, n_simulations)
 
     datatable(tab, 
               class = 'row-border stripe compact hover',
               extensions = 'Buttons', 
               rownames = FALSE, selection = 'single', autoHideNavigation = FALSE,
               colnames = c("Pest", "Pest species", "EPPO code", "Assessor", "Started", 
-                           "Last Edited", "Finished", "Valid", "Notes", "Version"),
+                           "Last Edited", "Finished", "Valid", "Notes", "Version",
+                           "Sim n. iterations", "Sim lambda", "Sim weight 1", "Sim weight 2", 
+                           "Sim last date", "N. simulations"),
               options = list(
                 columnDefs = list(
                   list(targets = c(0), visible = FALSE) # hides 1st column 
@@ -224,7 +234,7 @@ server <- function(input, output, session) {
                 paging = TRUE)
     ) |> 
       formatDate(columns = c('startDate'), method = 'toLocaleDateString') |> 
-      formatDate(columns = c('endDate'), method = 'toLocaleString')
+      formatDate(columns = c('endDate', 'date'), method = 'toLocaleString')
                      
   })
   
@@ -401,9 +411,9 @@ server <- function(input, output, session) {
     tagList(
       div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
           h4(strong("Pest species information"), style = "color:#7C6A56"),
-          p(ass_info$vernacularName),
+          p(ifelse(!is.na(ass_info$vernacularName), ass_info$vernacularName, "")),
           p(strong("EPPO code: "), ass_info$eppoCode),
-          p(strong("GBIF uuid: "), ass_info$gbifuuid),
+          p(strong("GBIF taxon key: "), ass_info$gbifTaxonKey),
           p(strong("Synonyms: "), em(ass_info$synonyms)),
           p(strong("Taxonomic Group: "), taxa),
           p(strong("Quarantine Status: "), quaran),
@@ -1685,13 +1695,13 @@ server <- function(input, output, session) {
       mutate(inEurope = as.logical(inEurope)) |> 
       left_join(taxa$data, by = "idTaxa") |>
       left_join(quaran$data, by = "idQuarantineStatus") |>
-      select(scientificName, eppoCode, gbifuuid, vernacularName, synonyms, name.x, name.y, inEurope)
+      select(scientificName, eppoCode, gbifTaxonKey, vernacularName, synonyms, name.x, name.y, inEurope)
 
     datatable(tab, 
               class = 'row-border stripe compact hover',
               extensions = 'Buttons', 
               rownames = FALSE, selection = 'single', autoHideNavigation = FALSE,
-              colnames = c("Pest species", "EPPO code", "GBIF UUID", "Common names", 
+              colnames = c("Pest species", "EPPO code", "GBIF taxon key", "Common names", 
                            "Synonyms", "Taxonomic Group", "Quarantine Status", "Present in Europe"),
               options = list(
                 # columnDefs = list(
@@ -1719,7 +1729,7 @@ server <- function(input, output, session) {
                textInput("new_common", "Common Name"),
                textInput("new_synonyms", "Synonyms"),
                textInput("new_eppo", "EPPO code"),
-               textInput("new_gbifuuid", "GBIF UUID"),
+               textInput("new_gbifTaxonKey", "GBIF taxon key"),
                selectInput("new_taxa", "Taxonomic Group*", choices = setNames(c("", taxa$data$idTaxa), 
                                                                               c("", taxa$data$name))),
                selectInput("new_quaran", "Quarantine Status*", choices = setNames(c("", quaran$data$idQuarantineStatus),
@@ -1759,13 +1769,13 @@ server <- function(input, output, session) {
     # Coalesce empty inputs to NA
     new_common   <- ifelse(input$new_common == "", NA, input$new_common)
     new_eppo     <- ifelse(input$new_eppo == "", NA, input$new_eppo)
-    new_gbif     <- ifelse(input$new_gbifuuid == "", NA, input$new_gbifuuid)
+    new_gbif     <- ifelse(input$new_gbifTaxonKey == "", NA, input$new_gbifTaxonKey)
     new_synonyms <- ifelse(input$new_synonyms == "", NA, input$new_synonyms)
     
     # Check for duplicates
     duplicate_sci  <- tolower(input$new_sci) %in% tolower(pests$data$scientificName)
     duplicate_eppo <- (input$new_eppo != "" && input$new_eppo %in% pests$data$eppoCode)
-    duplicate_gbif <- (input$new_gbifuuid != "" && input$new_gbifuuid %in% pests$data$gbifuuid)
+    duplicate_gbif <- (input$new_gbifTaxonKey != "" && input$new_gbifTaxonKey %in% pests$data$gbifTaxonKey)
     
     if (duplicate_eppo || duplicate_gbif || duplicate_sci) {
       shinyalert(
@@ -1773,7 +1783,7 @@ server <- function(input, output, session) {
         text = paste(
           if (duplicate_sci) "Scientific name already exists." else NULL,
           if (duplicate_eppo) "EPPO code already exists." else NULL,
-          if (duplicate_gbif) "GBIF UUID already exists." else NULL,
+          if (duplicate_gbif) "GBIF taxon key already exists." else NULL,
           sep = "\n"
         ),
         type = "error"
@@ -1783,11 +1793,11 @@ server <- function(input, output, session) {
     
     # Insert into pests table
     res <- dbExecute(conn = con(),
-                     "INSERT INTO pests(scientificName, vernacularName, eppoCode, gbifuuid,
+                     "INSERT INTO pests(scientificName, vernacularName, eppoCode, gbifTaxonKey,
                                         synonyms, idTaxa, idQuarantineStatus, inEurope)
                         VALUES(?,?,?,?,?,?,?,?)
                         RETURNING idPest;",
-                     params = list(input$new_sci, input$new_common, input$new_eppo, input$new_gbifuuid,
+                     params = list(input$new_sci, input$new_common, input$new_eppo, input$new_gbifTaxonKey,
                                    input$new_synonyms, input$new_taxa, input$new_quaran, as.integer(input$new_ineu)))
     
     pests$data <- dbReadTable(con(), "pests")
