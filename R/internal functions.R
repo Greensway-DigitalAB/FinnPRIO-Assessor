@@ -382,9 +382,9 @@ get_inputs_path_as_df <- function(answers, input){ ## , points_path
     }
   }
 
-  input_names_just <- names(input)[grepl("^justEnt", names(input))]
+  input_names_just <- names(input)[grepl("^justENT", names(input))]
   # Remove justifications for ENT1 as they are not collected
-  input_names_just <- input_names_just[-grep("Ent1",input_names_just)]  
+  input_names_just <- input_names_just[-grep("ENT1",input_names_just)]  
   respJust <- sapply(input_names_just, function(i) input[[i]])
   
   # Create a full justification dataframe
@@ -860,10 +860,11 @@ add_answers_path_to_report <- function(doc, tag, questions_entry,
 
 
 ## Remove all inputs for a given prefix
-remove_inputs_by_prefix <- function(input, prefix) {
+remove_inputs_by_prefix <- function(input, prefix, session) {
   input_names <- names(input)
-  to_remove <- input_names[grepl(paste0("^", prefix), input_names)]
+  # to_remove <- input_names[grepl(paste0("^", prefix), input_names)]
+  to_remove <- input_names[grepl(prefix, input_names)]
   for (name in to_remove) {
-    removeUI(name)
+    removeUI(glue("div:has(> #{name}"), immediate = TRUE, session = session)
   }
 }

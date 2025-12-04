@@ -1,9 +1,8 @@
 navbarPage("FinnPRIO-Assessor",
             tabPanel("Assessments",
                      tabsetPanel(id = "all_assessments",
-                        tabPanel(
+                        tabPanel(id = "all", value = "all",
                                 title = tagList(icon("laptop-file", class = "fas"), "Assessments"),
-                                value = 1,
                                 fluidPage(
                                   br(),
                                   column(10,
@@ -36,21 +35,20 @@ navbarPage("FinnPRIO-Assessor",
                                   )
                                 )
                               ), 
-                        tabPanel(
+                        tabPanel(id = "selected", value = "sel",
                                  title = uiOutput("selectedAssName"),
-                                 value = 2,
                                  br(),
                                  fluidRow(
                                    tags$style(
                                    HTML("
-                                       #save {
+                                       #save_answers {
                                        position: fixed;
                                        top: 315px;       /* Distance from top */
                                        right: 20px;      /* Distance from right */
                                        z-index: 1000;    /* Ensures it stays on top */
                                        }")
                                    ),
-                                   actionButton("save", "Save Assessment") #,
+                                   actionButton("save_answers", "Save Answers") #,
                                    # Autosave status text
                                    # tags$div(
                                    #   style = "margin-left: 20px;",
