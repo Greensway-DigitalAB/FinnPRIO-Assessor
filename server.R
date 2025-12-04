@@ -315,7 +315,7 @@ server <- function(input, output, session) {
     # Build card UI
     tagList(
       tags$div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-               fluidRow(
+              fluidRow(
                  column(4, 
                         h3(em(ass_info$scientificName)),
                         h4(ass_info$fullName),
@@ -346,16 +346,17 @@ server <- function(input, output, session) {
                                   uiOutput("entrypath_checkboxes")
                                   )
                   )
+              ),
+             fluidRow(
+               h4(strong("Notes"), style = "color:#7C6A56"),
+               textAreaInput("ass_notes", label = "", 
+                             value = ifelse(is.na(ass_info$notes), "", ass_info$notes),
+                             width = "auto", height = "500px", resize = "vertical")
                )
-      ),
-      tags$div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-               fluidRow(
-                 textAreaInput("ass_notes", label = "Notes", 
-                               value = ifelse(is.na(ass_info$notes), "", ass_info$notes),
-                               width = "auto", height = "500px", resize = "vertical")
-                 )
-      ),
-      br()
+      )#,
+      # tags$div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+      # ),
+      # br()
     )
     
   })
