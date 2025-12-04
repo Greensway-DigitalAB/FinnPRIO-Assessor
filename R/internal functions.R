@@ -630,6 +630,11 @@ report_assessment <- function(connection, assessments_selected, questions_main, 
     ) |>
     body_add_par("") |>
     body_add_fpar(
+      fpar( ftext("Notes: ", fp_text_lite(bold = TRUE)),
+            assessments_selected$notes)
+    ) |>  
+    body_add_par("") |>
+    body_add_fpar(
       fpar( ftext("Host plants: ", fp_text_lite(bold = TRUE)),
             assessments_selected$hosts)
     ) |> 
@@ -646,11 +651,6 @@ report_assessment <- function(connection, assessments_selected, questions_main, 
     body_add_fpar(
       fpar( ftext(assessments_selected$potentialEntryPathways) )
     ) |>
-    body_add_par("") |>
-    body_add_fpar(
-      fpar( ftext("Notes: ", fp_text_lite(bold = TRUE)),
-            assessments_selected$notes)
-    ) |>  
     body_add_break() |> 
     body_add_par("Assessments", style = "heading 2") |>
     body_add_par("")
@@ -714,7 +714,8 @@ add_answers_to_report <- function(doc, tag, questions_main, answers_main, answer
     # info <- answers_logical$info[x]
     just <- answers_main |> 
       filter(idQuestion == quest$idQuestion[x]) |> 
-      pull(justification)
+      pull(justification) #|> 
+      # strsplit(txt, "\\r\\n")[[1]]
     opt <- fromJSON(options)$opt
     text <- fromJSON(options)$text
     answers_quest <- answers_logical |> 
@@ -767,15 +768,20 @@ add_answers_to_report <- function(doc, tag, questions_main, answers_main, answer
       # body_add_par(paste0("ENT", id, ": ", question), style = "heading 3") |> 
       body_add_fpar(
         fpar(
-          ftext(paste0(q_tag, ": "), prop = fp_text(bold = TRUE)),
-          ftext(question, prop = fp_text())
+          ftext(paste0(q_tag, ": "), prop = fp_text(bold = TRUE, font.size = 12)),
+          ftext(question, prop = fp_text(font.size = 12))
         )) |> 
       body_add_flextable(
         flextable(answers_quest,
-                  cwidth = 1.5)
+                  cwidth = 1.5) |> 
+          align(j = c("Minimum", "Likely", "Maximum"), 
+                align = "center", part = "body")
       ) |>
       # body_add_list(options, ordered = FALSE) |> 
-      body_add_par(paste0("Justification: ", just), style = "Normal")
+      body_add_par(paste0("Justification: ", just), style = "Normal") |> 
+      # body_add_par(paste0("Justification: "), style = "Normal") |> 
+      # body_add_fpar(fpar(lapply(just, ftext))) |> 
+      body_add_par("")
   } 
   
   # doc <- doc |> body_add_break()
@@ -833,15 +839,18 @@ add_answers_path_to_report <- function(doc, tag, questions_entry,
       # body_add_par(paste0("ENT", id, ": ", question), style = "heading 3") |> 
       body_add_fpar(
         fpar(
-          ftext(paste0(tag, id, ": "), prop = fp_text(bold = TRUE)),
-          ftext(question, prop = fp_text())
+          ftext(paste0(tag, id, ": "), prop = fp_text(bold = TRUE, font.size = 12)),
+          ftext(question, prop = fp_text(font.size = 12))
         )) |> 
       body_add_flextable(
         flextable(answers_quest,
-                  cwidth = 1.5)
+                  cwidth = 1.5) |> 
+          align(j = c("Minimum", "Likely", "Maximum"), 
+                align = "center", part = "body")
       ) |>
       # body_add_list(options, ordered = FALSE) |> 
-      body_add_par(paste0("Justification: ", just), style = "Normal")
+      body_add_par(paste0("Justification: ", just), style = "Normal") |> 
+      body_add_par("")
   } 
   
   # doc <- doc |> body_add_break()

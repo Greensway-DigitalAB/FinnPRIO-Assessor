@@ -602,13 +602,13 @@ server <- function(input, output, session) {
     quesMan <- questions$main |> filter(group == "MAN") |> arrange(number)
     answers_logical <- answers_2_logical(answers$main, questions$main)
     tagList(
-      tabsetPanel(
-        tabPanel(id = "info", 
+      tabsetPanel(id = "questionarie",
+        tabPanel(id = "info", value = 1, 
                  title = "General Information",
                  uiOutput("assessment_summary")
         ),
         tabPanel(id = "entry", 
-                 title = "Entry",
+                 title = "Entry", value = 2, 
                  lapply(1:nrow(quesEnt), 
                         function(x){
                           question <- quesEnt$question[x]
@@ -654,7 +654,7 @@ server <- function(input, output, session) {
                  br(),
                  uiOutput("questionariePath")
         ),
-        tabPanel(id = "est", 
+        tabPanel(id = "est", value = 3, 
                  title = "Establishment and Spread",
                  lapply(1:nrow(quesEst), 
                         function(x){
@@ -693,7 +693,7 @@ server <- function(input, output, session) {
                           )
                         })
         ),
-        tabPanel(id = "imp", 
+        tabPanel(id = "imp", value = 4, 
                  title = "Impact",
                  lapply(1:nrow(quesImp),
                         function(x){
@@ -734,7 +734,7 @@ server <- function(input, output, session) {
                           )
                         })
         ),
-        tabPanel(id = "man", 
+        tabPanel(id = "man", value = 5, 
                  title = "Management",
                  lapply(1:nrow(quesMan),
                         function(x){
@@ -774,7 +774,7 @@ server <- function(input, output, session) {
                           )
                         })
         ),
-        tabPanel(id = "ref", 
+        tabPanel(id = "ref", value = 6, 
                  title = "References",
                  br(),
                  textAreaInput("ass_reftext",
@@ -785,7 +785,7 @@ server <- function(input, output, session) {
                                height = '500px',
                                resize = "both")
         ),
-        tabPanel(id = "sim", 
+        tabPanel(id = "sim", value = 7, 
                  title = "Simulation",
                  br(),
                  tagList(
@@ -1212,7 +1212,7 @@ server <- function(input, output, session) {
     
     req(assessments$selected)
     req(assessments$threats)
-
+    tab_now <- input$questionarie
     # Save assessment general info
     dbExecute(con(), "UPDATE assessments SET endDate = ?, 
                                               hosts = ?,
@@ -1369,7 +1369,6 @@ server <- function(input, output, session) {
       assessments$entry <- NULL
     }
     
-# print(assessments$entry)    
     if (!is.null(assessments$entry)) {
       answ_ent <- extract_answers_entry(questions$entry, groupTag = "ENT", 
                                          path = names(assessments$entry), 
@@ -1378,10 +1377,8 @@ server <- function(input, output, session) {
       any_non <- any(!lapply(answ_ent, is.null) |> unlist())
       if(any_non){
         resentry <- frominput$entry
-# print(resentry)
         if (!is.null(resentry)) {
           if(nrow(resentry) >= 1) {
-# print("did i get all the way here?")      
             for (i in 1:nrow(resentry)) {
               # Check if the answer already exists
               idQue <- questions$entry |> 
@@ -1451,6 +1448,7 @@ server <- function(input, output, session) {
       timer = 1000,
     )
     
+    updateTabsetPanel(session, "questionarie", selected = tab_now)
   }, ignoreInit = TRUE)
   
   # Simulations ----
@@ -1624,8 +1622,8 @@ server <- function(input, output, session) {
     datatable(simulations$summary |> 
                 mutate(variable = c("Entry A*", "Entry B**", "Establishment", 
                                     "Invasion A*", "Invasion B**", "Impact",
-                                    "Overall Risk A*", "Overall Risk B**",
-                                    "Preventavility", "Controlability", "Manageability")),
+                                    "Risk A*", "Risk B**",
+                                    "Preventability", "Controllability", "Manageability")),
               rownames = FALSE,
               colnames = c("Variable", "Min", "5th Percentile", "25th Percentile", 
                             "Median", "75th Percentile", "95th Percentile", "Max", "Mean"),
