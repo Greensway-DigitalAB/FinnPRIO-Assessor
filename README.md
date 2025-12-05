@@ -1,4 +1,4 @@
-innPRIO Assessor produce assessments conducted for Sweden made with the FinnPRIO model (Heikkila et al. 2016) . It is a modified version of the original app FinnPRIO developed in the Risk Assessment Unit of the Finnish Food Authority. (Marinova-Todorova et al. 2022)
+FinnPRIO Assessor produce assessments conducted for Sweden made with the FinnPRIO model (Heikkila et al. 2016) . It is a modified version of the original app FinnPRIO developed in the Risk Assessment Unit of the Finnish Food Authority. (Marinova-Todorova et al. 2022)
 
 
 FinnPRIO model
