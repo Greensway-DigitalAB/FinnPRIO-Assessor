@@ -321,9 +321,9 @@ server <- function(input, output, session) {
     simulations$selected <- NULL
     simulations$results <- NULL
     simulations$summary <- NULL
-    
     proxyassessments |> selectRows(NULL)  
     proxysimulations |> selectRows(NULL)  
+    # output$questionarie <- renderUI({ NULL })   # nukes the whole block
     
     req(pests$data)
     req(assessors$data)
@@ -383,18 +383,9 @@ server <- function(input, output, session) {
   )
   
   ## Select assessment ----
+  # observeEvent(input$edit_ass, {
   observeEvent(input$assessments_rows_selected, {
-    frominput$main <- NULL
-    frominput$entry <- NULL
     assessments$selected <- NULL
-    assessments$entry <- NULL
-    assessments$threats <- NULL
-    answers$main <- NULL
-    answers$entry <- NULL
-    simulations$selected <- NULL
-    simulations$results <- NULL
-    simulations$summary <- NULL
-    
     ## If no selection, clear selected assessment
     # if (is.null(input$assessments_rows_selected)) {
     # } else {
@@ -408,33 +399,59 @@ server <- function(input, output, session) {
         mutate(label = paste(scientificName, eppoCode, 
                              paste(firstName, lastName), startDate, 
                              sep = "_"))
+    }
+    # proxyassessments |> selectRows(NULL)  
+  })
+  
+  ## Assessments summary ----
+  observeEvent(assessments$selected,{
+    # print(assessments$selected)
+    # updateCheckboxGroupInput(session, "input$IMP1_b", selected = character(0))
+    # print(session$ns("imp1_table_container"))
+    # removeUI(selector = "#imp1_table_container", immediate = TRUE)
+    
+    # output$questionarie <- renderUI({ NULL })   # nukes the whole block
+    # print(input$IMP1_a)
+    # print(input$IMP1_b)
+    # print(input$IMP1_g)
+    
+    frominput$main <- NULL
+    frominput$entry <- NULL
+     
+    assessments$entry <- NULL
+    assessments$threats <- NULL
+    answers$main <- NULL
+    answers$entry <- NULL
+    simulations$selected <- NULL
+    simulations$results <- NULL
+    simulations$summary <- NULL
+    if(!is.null(assessments$selected)){
       # assessments$selected
       selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
-                                                 -- LEFT JOIN pathways ON entryPathways.idPathway = pathways.idPathway
-                                                 WHERE idAssessment = {assessments$selected$idAssessment}"))
-
+                                                   -- LEFT JOIN pathways ON entryPathways.idPathway = pathways.idPathway
+                                                   WHERE idAssessment = {assessments$selected$idAssessment}"))
+      
       if (nrow(selected_entries) > 0) {
         assessments$entry <- vector(mode = "list", length = nrow(selected_entries))
         names(assessments$entry) <- selected_entries$idPathway
       }
       
       assessments$threats <- dbGetQuery(con(), glue("SELECT idThreat, threatXassessment.idThrSect, threatGroup, name FROM threatXassessment
-                                             LEFT JOIN threatenedSectors ON threatXassessment.idThrSect = threatenedSectors.idThrSect
-                                             WHERE idAssessment = {as.integer(assessments$selected$idAssessment)}"))
+                                               LEFT JOIN threatenedSectors ON threatXassessment.idThrSect = threatenedSectors.idThrSect
+                                               WHERE idAssessment = {as.integer(assessments$selected$idAssessment)}"))
       # Load previous answers
       answers$main <- dbGetQuery(con(), glue("SELECT * FROM answers WHERE idAssessment = {assessments$selected$idAssessment}"))
       answers$entry <- dbGetQuery(con(), glue("SELECT pa.*, ep.idAssessment, ep.idPathway
-                                              FROM pathwayAnswers AS pa 
-                                              LEFT JOIN entryPathways AS ep ON pa.idEntryPathway = ep.idEntryPathway
-                                              WHERE pa.idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
-
+                                                FROM pathwayAnswers AS pa 
+                                                LEFT JOIN entryPathways AS ep ON pa.idEntryPathway = ep.idEntryPathway
+                                                WHERE pa.idEntryPathway IN ({paste(selected_entries$idEntryPathway, collapse = ', ')})"))
+      
       updateTabsetPanel(session, "all_assessments", selected = "sel")
-        
     }
-
+    
   })
   
-  ## Assessments summary ----
+  ### Tab name ----
   output$selectedAssName <- renderUI({
     if (!is.null(input$assessments_rows_selected)) {
       res <- tagList(icon("file-lines", class = "fas"), assessments$selected$label)
@@ -453,46 +470,47 @@ server <- function(input, output, session) {
       
       # Build card UI
       ui <- tagList(
-        tags$div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
                 fluidRow(
-                   column(4, 
-                          h3(em(ass_info$scientificName)),
-                          h4(ass_info$fullName),
-                          p("Created on", ass_info$startDate),
-                          p("Last edited on", ass_info$endDate),
-                          p("Questionary ver.", ass_info$version),
-                          checkboxInput("ass_finish", label = "Is finished?", value = ass_info$finished),
-                          checkboxInput("ass_valid", label = "Is valid?", value = ass_info$valid),
-                          downloadButton("download_report", "Download Assessment Report"),
-                          actionButton("save_general", "Save assessment details"),
-                          uiOutput("species_summary")
+                   column(4,
+                          div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                              
+                            h3(em(ass_info$scientificName)),
+                            h4(ass_info$fullName),
+                            p("Created on", ass_info$startDate),
+                            p("Last edited on", ass_info$endDate),
+                            p("Questionary ver.", ass_info$version),
+                            checkboxInput("ass_finish", label = "Is finished?", value = ass_info$finished),
+                            checkboxInput("ass_valid", label = "Is valid?", value = ass_info$valid),
+                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                              downloadButton("download_report", "Download Assessment Report"),
+                              actionButton("save_general", "Save assessment details")
+                            ),
+                            br(),
+                            uiOutput("species_summary")
+                          )
                           ),
                    column(4,
-                          tags$div(class = "card", 
-                                   style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-                                   h4(strong("Hosts"), style = "color:#7C6A56"),
-                                   textAreaInput("ass_hosts", label = "", 
-                                                 value = ifelse(is.na(ass_info$hosts), "", ass_info$hosts),
-                                                 width = "auto", height = "200px", resize = "vertical")
-                          ),
-                          tags$div(class = "card", 
-                                   style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-                                   uiOutput("threat_checkboxes")
-                                   )
+                            h4(strong("Hosts"), style = "color:#7C6A56"),
+                            textAreaInput("ass_hosts", label = "", 
+                                          value = ifelse(is.na(ass_info$hosts), "", ass_info$hosts),
+                                          width = "auto", height = "200px", resize = "vertical"),
+                            br(),         
+                            uiOutput("threat_checkboxes")
                           ),
                     column(4,
-                           tags$div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-                                    uiOutput("entrypath_checkboxes")
-                                    )
+                           uiOutput("entrypath_checkboxes")
                     )
                 ),
                fluidRow(
-                 h4(strong("Notes"), style = "color:#7C6A56"),
-                 textAreaInput("ass_notes", label = "", 
-                               value = ifelse(is.na(ass_info$notes), "", ass_info$notes),
-                               width = "auto", height = "500px", resize = "vertical")
+                 column(12,
+                    div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+                        h4(strong("Notes"), style = "color:#7C6A56"),
+                        textAreaInput("ass_notes", label = "", 
+                                      value = ifelse(is.na(ass_info$notes), "", ass_info$notes),
+                                      width = "auto", height = "500px", resize = "vertical")
+                        )
+                    )
                  )
-        )
       )
     }
     return(ui)
@@ -632,63 +650,65 @@ server <- function(input, output, session) {
     quesImp <- questions$main |> filter(group == "IMP") |> arrange(number)
     quesMan <- questions$main |> filter(group == "MAN") |> arrange(number)
     
-    
     answers_logical <- answers_2_logical(answers$main, questions$main)
     
     if(is.null(assessments$selected)){
       ui <- NULL
     } else {
-      
       ui <- tagList(
-        tabsetPanel(id = "questionarie_tab",
-          tabPanel(id = "info", value = 1, 
-                   title = "General Information",
-                   uiOutput("assessment_summary")
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("General Information"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            uiOutput("assessment_summary"),
           ),
-          tabPanel(id = "entry", 
-                   title = "Entry", value = 2, 
-                   lapply(1:nrow(quesEnt), 
-                          function(x){
-                            question <- quesEnt$question[x]
-                            options <- quesEnt$list[x]
-                            id <- quesEnt$number[x]
-                            info <- quesEnt$info[x]
-                            just <- answers$main |> 
-                              filter(idQuestion == quesEnt$idQuestion[x]) |> 
-                              pull(justification)
-                            tagList(
-                              div(style = "display: flex; align-items: center; gap: 8px;",
-                                h4(glue("ENT {id}: {question}")),
-                                h4("(i)",
-                                 tags$span(HTML(info), 
-                                           style = "color:black; font-size: 12px;"),
-                                 class = "bubble")
-                              ),
-                              fluidRow(
-                                div(style = "margin: 20px;",
-                                    render_quest_tab("ENT", id, question,
-                                                     fromJSON(options)$opt,
-                                                     fromJSON(options)$text,
-                                                     answers_logical),
-                                    br(),
-                                    textAreaInput(glue("justENT{id}"),
-                                                  label = "Justification",
-                                                  value = just,  
-                                                  width = 'auto',
-                                                  height = '150px',
-                                                  resize = "vertical")
-                                    # )
-                                )
-                              ),
-                              hr(style = "border-color: gray;")
-                            )
-                          }),
-                   br(),
-                   uiOutput("questionariePath")
-          ),
-          tabPanel(id = "est", value = 3, 
-                   title = "Establishment and Spread",
-                   lapply(1:nrow(quesEst), 
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("Entry"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            tagList(
+                     lapply(1:nrow(quesEnt),
+                            function(x){
+                              question <- quesEnt$question[x]
+                              options <- quesEnt$list[x]
+                              id <- quesEnt$number[x]
+                              info <- quesEnt$info[x]
+                              just <- answers$main |>
+                                filter(idQuestion == quesEnt$idQuestion[x]) |>
+                                pull(justification)
+                              tagList(
+                                div(style = "display: flex; align-items: center; gap: 8px;",
+                                  h4(glue("ENT {id}: {question}")),
+                                  h4("(i)",
+                                   tags$span(HTML(info),
+                                             style = "color:black; font-size: 12px;"),
+                                   class = "bubble")
+                                ),
+                                fluidRow(
+                                  div(id = glue("ent{id}_table_container"),
+                                      style = "margin: 20px;",
+                                      render_quest_tab("ENT", id, question,
+                                                       fromJSON(options)$opt,
+                                                       fromJSON(options)$text,
+                                                       answers_logical),
+                                      br(),
+                                      textAreaInput(glue("justENT{id}"),
+                                                    label = "Justification",
+                                                    value = just,
+                                                    width = 'auto',
+                                                    height = '150px',
+                                                    resize = "vertical")
+                                      # )
+                                  )
+                                ),
+                                hr(style = "border-color: gray;")
+                              )
+                            }),
+                     h4("Pathways"),
+                     uiOutput("questionariePath")
+              
+            )
+            # )
+        ),
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("Establishment and Spread"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            lapply(1:nrow(quesEst), 
                           function(x){
                             question <- quesEst$question[x]
                             options <- quesEst$list[x]
@@ -706,7 +726,8 @@ server <- function(input, output, session) {
                                      class = "bubble")
                               ),
                               fluidRow(
-                                div(style = "margin: 20px;",
+                                div(id = glue("est{id}_table_container"),
+                                    style = "margin: 20px;",
                                     render_quest_tab("EST", id, question,
                                                      fromJSON(options)$opt,
                                                      fromJSON(options)$text,
@@ -725,8 +746,8 @@ server <- function(input, output, session) {
                             )
                           })
           ),
-          tabPanel(id = "imp", value = 4, 
-                   title = "Impact",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("Impact"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
                    lapply(1:nrow(quesImp),
                           function(x){
                             question <- quesImp$question[x]
@@ -746,7 +767,8 @@ server <- function(input, output, session) {
                                      class = "bubble")
                               ),
                               fluidRow(
-                                div(style = "margin: 20px;",
+                                div(id = glue("imp{id}_table_container"),
+                                    style = "margin: 20px;",
                                     render_quest_tab("IMP", id, question,
                                                      fromJSON(options)$opt,
                                                      fromJSON(options)$text,
@@ -765,9 +787,9 @@ server <- function(input, output, session) {
                             )
                           })
           ),
-          tabPanel(id = "man", value = 5, 
-                   title = "Management",
-                   lapply(1:nrow(quesMan),
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("Management"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            lapply(1:nrow(quesMan),
                           function(x){
                             question <- quesMan$question[x]
                             options <- quesMan$list[x]
@@ -786,7 +808,8 @@ server <- function(input, output, session) {
                                      class = "bubble")
                               ),
                               fluidRow(
-                                div(style = "margin: 20px;",
+                                div(id = glue("man{id}_table_container"),
+                                    style = "margin: 20px;",
                                     render_quest_tab("MAN", id, question,
                                                      fromJSON(options)$opt,
                                                      fromJSON(options)$text,
@@ -804,9 +827,9 @@ server <- function(input, output, session) {
                             )
                           })
           ),
-          tabPanel(id = "ref", value = 6, 
-                   title = "References",
-                   br(),
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("References"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            br(),
                    textAreaInput("ass_reftext",
                                  label = "References",
                                  value = ifelse(is.na(assessments$selected$reference), "", 
@@ -815,12 +838,11 @@ server <- function(input, output, session) {
                                  height = '500px',
                                  resize = "both")
           ),
-          tabPanel(id = "sim", value = 7, 
-                   title = "Simulation",
-                   br(),
-                   tagList(
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+            h3(strong("Simulations"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+            tagList(
                      div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
-                         h3(strong("All Simulations for this Assessment"), style = "color:#7C6A56"),
+                         h4(strong("All Simulations for this Assessment"), style = "color:#7C6A56"),
                          DTOutput("simulations")
                          )
                      ),
@@ -864,17 +886,15 @@ server <- function(input, output, session) {
                      )
                    ),
                    fluidRow(
-                     div(style = "margin: 20px;",
-                         tagList(
+                      tagList(
                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
                                h4(strong("Results"), style = "color:#7C6A56"),
                                DTOutput("sim_results")
                            )
-                         )
                      )
                    )
           )
-        )
+        # )
       )
     } # end if(is.null(assessments$selected))
     
@@ -883,7 +903,7 @@ server <- function(input, output, session) {
   
   ### Control all inputs dynamically ----
   observe({
-    req(assessments$selected)
+    # req(assessments$selected)
     req(questions$main)
     answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
     answ_est <- extract_answers(questions$main, groupTag = "EST", input)
@@ -892,9 +912,6 @@ server <- function(input, output, session) {
     answ_all <- c(answ_ent, answ_est, answ_imp, answ_man)
 
     frominput$main <- get_inputs_as_df(answ_all, input) 
-    
-    # if(dbStatus$dibs) enable("save_general")
-# print("triggered")
   })
   
   #### Error message for order of minimum likely maximum ----
@@ -1144,23 +1161,27 @@ server <- function(input, output, session) {
                 params = list(1, 
                               format(now("CET"), "%Y-%m-%d %H:%M:%S"), 
                               assessments$selected$idAssessment))
+      assessments$selected$finished <- 1 
       
     } else {
       updateCheckboxInput(session, "ass_valid", value = FALSE)
       dbExecute(con(), "UPDATE assessments SET finished = ?, valid = ? WHERE idAssessment = ?",
                 params = list(0, 0,
                               assessments$selected$idAssessment))
+      assessments$selected$finished <- 0
+      assessments$selected$valid <- 0
+      
     }
     
     # reload the assessments data
     assessments$data <- dbReadTable(con(), "assessments")
-    assessments$selected <- assessments$data[input$assessments_rows_selected, ]
-    assessments$selected <- assessments$selected |> 
-      left_join(pests$data, by = "idPest") |>
-      left_join(assessors$data, by = "idAssessor") |> 
-      mutate(label = paste(scientificName, eppoCode, 
-                           paste(firstName, lastName), startDate, 
-                           sep = "_"))
+    # assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+    # assessments$selected <- assessments$selected |> 
+    #   left_join(pests$data, by = "idPest") |>
+    #   left_join(assessors$data, by = "idAssessor") |> 
+    #   mutate(label = paste(scientificName, eppoCode, 
+    #                        paste(firstName, lastName), startDate, 
+    #                        sep = "_"))
   }, ignoreInit = TRUE)
   
   observeEvent(input$ass_valid, {
@@ -1189,6 +1210,7 @@ server <- function(input, output, session) {
                 dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
                           params = list(as.integer(input$ass_valid),
                                         assessments$selected$idAssessment))
+                assessments$selected$valid <- as.integer(input$ass_valid)
               }})  # END if Value, callback, shinyAlert
           
           
@@ -1196,16 +1218,17 @@ server <- function(input, output, session) {
           dbExecute(con(), "UPDATE assessments SET valid = ? WHERE idAssessment = ?",
                     params = list(as.integer(input$ass_valid),
                                   assessments$selected$idAssessment))
+          assessments$selected$valid <- as.integer(input$ass_valid)
         }
         
         assessments$data <- dbReadTable(con(), "assessments")
-        assessments$selected <- assessments$data[input$assessments_rows_selected, ]
-        assessments$selected <- assessments$selected |> 
-          left_join(pests$data, by = "idPest") |>
-          left_join(assessors$data, by = "idAssessor") |> 
-          mutate(label = paste(scientificName, eppoCode, 
-                               paste(firstName, lastName), startDate, 
-                               sep = "_"))
+        # assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+        # assessments$selected <- assessments$selected |> 
+        #   left_join(pests$data, by = "idPest") |>
+        #   left_join(assessors$data, by = "idAssessor") |> 
+        #   mutate(label = paste(scientificName, eppoCode, 
+        #                        paste(firstName, lastName), startDate, 
+        #                        sep = "_"))
         
       } else {
         updateCheckboxInput(session, "ass_valid", value = FALSE)
@@ -1218,7 +1241,7 @@ server <- function(input, output, session) {
     
     req(assessments$selected)
     req(assessments$threats)
-    tab_now <- input$questionarie_tab
+    # tab_now <- input$questionarie_tab
     # Save assessment general info
     dbExecute(con(), "UPDATE assessments SET endDate = ?, 
                                               hosts = ?,
@@ -1233,15 +1256,21 @@ server <- function(input, output, session) {
                             input$ass_notes,
                             assessments$selected$idAssessment))
     
-    assessments$data <- dbReadTable(con(), "assessments")
-    assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+    assessments$selected$endDate <- format(now("CET"), "%Y-%m-%d %H:%M:%S")
+    assessments$selected$hosts <- input$ass_hosts
+    assessments$selected$potentialEntryPathways <- input$ass_pot_entry_path_text
+    assessments$selected$references <- input$ass_reftext
+    assessments$selected$notes <- input$ass_notes
     
-    assessments$selected <- assessments$selected |> 
-      left_join(pests$data, by = "idPest") |>
-      left_join(assessors$data, by = "idAssessor") |> 
-      mutate(label = paste(scientificName, eppoCode, 
-                           paste(firstName, lastName), startDate, 
-                           sep = "_"))
+    assessments$data <- dbReadTable(con(), "assessments")
+    # assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+    # 
+    # assessments$selected <- assessments$selected |> 
+    #   left_join(pests$data, by = "idPest") |>
+    #   left_join(assessors$data, by = "idAssessor") |> 
+    #   mutate(label = paste(scientificName, eppoCode, 
+    #                        paste(firstName, lastName), startDate, 
+    #                        sep = "_"))
     
     # Insert associated threats
     threat_groups <- unique(threats$data$threatGroup)
@@ -1284,7 +1313,7 @@ server <- function(input, output, session) {
         dbExecute(con(), "INSERT INTO entryPathways(idAssessment, idPathway) VALUES(?, ?)",
                   params = list(assessments$selected$idAssessment, path_id))
       }
-      updateTabsetPanel(session, "questionarie_tab", selected = tab_now)
+      # updateTabsetPanel(session, "questionarie_tab", selected = tab_now)
     } # end add
     
     selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways 
@@ -1323,18 +1352,18 @@ server <- function(input, output, session) {
     
   }, ignoreInit = TRUE)
   
-  observe({
-    req(input$questionarie_tab)
-    if(input$questionarie_tab %in% c(1,7)) {
-      shinyjs::hide(id = "save_answers")
-    } else {
-      shinyjs::show(id = "save_answers", anim = TRUE, animType = "fade")
-    }
-  })
-  
   ## Save all answers in Assessment ----
+  # observe({
+  #   # req(input$questionarie_tab)
+  #   if(input$questionarie_tab %in% c(1,7)) {
+  #     shinyjs::hide(id = "save_answers")
+  #   } else {
+  #     shinyjs::show(id = "save_answers", anim = TRUE, animType = "fade")
+  #   }
+  # })
+  
   observeEvent(input$save_answers, {
-     tab_now <- input$questionarie_tab
+     # tab_now <- input$questionarie_tab
      dbExecute(con(), "UPDATE assessments SET endDate = ?,
                                               reference = ? 
                               WHERE idAssessment = ?",
@@ -1342,15 +1371,17 @@ server <- function(input, output, session) {
                              input$ass_reftext,
                              assessments$selected$idAssessment))
      
-     assessments$data <- dbReadTable(con(), "assessments")
-     assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+     assessments$selected$endDate <- format(now("CET"), "%Y-%m-%d %H:%M:%S")
+     assessments$selected$reference <- input$ass_reftext
      
-     assessments$selected <- assessments$selected |> 
-       left_join(pests$data, by = "idPest") |>
-       left_join(assessors$data, by = "idAssessor") |> 
-       mutate(label = paste(scientificName, eppoCode, 
-                            paste(firstName, lastName), startDate, 
-                            sep = "_"))
+     assessments$data <- dbReadTable(con(), "assessments")
+     # assessments$selected <- assessments$data[input$assessments_rows_selected, ]
+     # assessments$selected <- assessments$selected |> 
+     #   left_join(pests$data, by = "idPest") |>
+     #   left_join(assessors$data, by = "idAssessor") |> 
+     #   mutate(label = paste(scientificName, eppoCode, 
+     #                        paste(firstName, lastName), startDate, 
+     #                        sep = "_"))
      
      selected_entries <- dbGetQuery(con(), glue("SELECT * FROM entryPathways
                                                WHERE idAssessment = {assessments$selected$idAssessment}"))
@@ -1485,7 +1516,7 @@ server <- function(input, output, session) {
       timer = 1000,
     )
     
-    updateTabsetPanel(session, "questionarie_tab", selected = tab_now)
+    # updateTabsetPanel(session, "questionarie_tab", selected = tab_now)
   }, ignoreInit = TRUE)
   
   # Simulations ----
