@@ -148,6 +148,7 @@ server <- function(input, output, session) {
         quaran$data <- dbReadTable(con(), "quarantineStatus")
         pathways$data <- dbReadTable(con(), "pathways")
         pathways_n <- nrow(pathways$data)
+print(pathways_n)
         setProgress(.5)
         assessments$data <- dbReadTable(con(), "assessments")
         simulations$data <- dbReadTable(con(), "simulations")
@@ -323,8 +324,7 @@ server <- function(input, output, session) {
     simulations$summary <- NULL
     proxyassessments |> selectRows(NULL)  
     proxysimulations |> selectRows(NULL)  
-    # output$questionarie <- renderUI({ NULL })   # nukes the whole block
-    
+
     req(pests$data)
     req(assessors$data)
     req(pathways$data)
@@ -386,11 +386,8 @@ server <- function(input, output, session) {
   # observeEvent(input$edit_ass, {
   observeEvent(input$assessments_rows_selected, {
     assessments$selected <- NULL
-    ## If no selection, clear selected assessment
-    # if (is.null(input$assessments_rows_selected)) {
-    # } else {
     if (!is.null(input$assessments_rows_selected)) {
-      ## OBS! watch here the selection process based on the filter options
+      ## OBS! watch here the selection process if you use filters
       assessments$selected <- assessments$data[input$assessments_rows_selected, ]
       
       assessments$selected <- assessments$selected |> 
@@ -400,21 +397,10 @@ server <- function(input, output, session) {
                              paste(firstName, lastName), startDate, 
                              sep = "_"))
     }
-    # proxyassessments |> selectRows(NULL)  
   })
   
   ## Assessments summary ----
   observeEvent(assessments$selected,{
-    # print(assessments$selected)
-    # updateCheckboxGroupInput(session, "input$IMP1_b", selected = character(0))
-    # print(session$ns("imp1_table_container"))
-    # removeUI(selector = "#imp1_table_container", immediate = TRUE)
-    
-    # output$questionarie <- renderUI({ NULL })   # nukes the whole block
-    # print(input$IMP1_a)
-    # print(input$IMP1_b)
-    # print(input$IMP1_g)
-    
     frominput$main <- NULL
     frominput$entry <- NULL
      
@@ -903,7 +889,6 @@ server <- function(input, output, session) {
   
   ### Control all inputs dynamically ----
   observe({
-    # req(assessments$selected)
     req(questions$main)
     answ_ent <- extract_answers(questions$main, groupTag = "ENT", input)
     answ_est <- extract_answers(questions$main, groupTag = "EST", input)
@@ -954,6 +939,7 @@ server <- function(input, output, session) {
                                     fromJSON(questions$entry$list[1])$opt,
                                     fromJSON(questions$entry$list[1])$text,
                                     answers_path_2_logical(answers$entry, questions$entry)),
+                   uiOutput(glue("ENT2A_{x}_warning")), ## This is because the rendering inside render_quest_tab does not work with pathways
                    br(),
                    textAreaInput(glue("justENT2A_{x}"),
                                  label = "Justification",
@@ -977,6 +963,7 @@ server <- function(input, output, session) {
                                      fromJSON(questions$entry$list[2])$opt,
                                      fromJSON(questions$entry$list[2])$text,
                                      answers_path_2_logical(answers$entry, questions$entry)),
+                   uiOutput(glue("ENT2B_{x}_warning")), ## This is because the rendering inside render_quest_tab does not work with pathways
                    br(),
                     textAreaInput(glue("justENT2B_{x}"),
                                   label = "Justification",
@@ -1000,6 +987,7 @@ server <- function(input, output, session) {
                                      fromJSON(questions$entry$list[3])$opt,
                                      fromJSON(questions$entry$list[3])$text,
                                      answers_path_2_logical(answers$entry, questions$entry)),
+                   uiOutput(glue("ENT3_{x}_warning")), ## This is because the rendering inside render_quest_tab does not work with pathways
                    br(),
                     textAreaInput(glue("justENT3_{x}"),
                                   label = "Justification",
@@ -1023,6 +1011,7 @@ server <- function(input, output, session) {
                                      fromJSON(questions$entry$list[4])$opt,
                                      fromJSON(questions$entry$list[4])$text,
                                      answers_path_2_logical(answers$entry, questions$entry)),
+                   uiOutput(glue("ENT4_{x}_warning")), ## This is because the rendering inside render_quest_tab does not work with pathways
                    br(),
                     textAreaInput(glue("justENT4_{x}"),
                                   label = "Justification",
@@ -1062,31 +1051,43 @@ server <- function(input, output, session) {
   
   
   #### Error message for entry pathways questions ----
-  # this is hardcoded for now
-  lapply(c(1:pathways_n), function(p){
-    output[[paste0("ENT2A_", p, "_warning")]] <- renderUI({
-      req(frominput$entry)
-      render_severity_warning("ENT2A", frominput$entry |> filter(path == p))
-    })
+  # this is hardcoded for now i cant get to read the reactive pathways and a loop wont work
+  lapply(c("ENT2A", "ENT2B","ENT3","ENT4"), function(tag){
+      output[[paste0(tag,"_", 1, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 1))
+      })
+      output[[paste0(tag,"_", 2, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 2))
+      })
+      output[[paste0(tag,"_", 3, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 3))
+      })
+      output[[paste0(tag,"_", 4, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 4))
+      })
+      output[[paste0(tag,"_", 5, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 5))
+      })
+      output[[paste0(tag,"_", 6, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 6))
+      })
+      output[[paste0(tag,"_", 7, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 7))
+      })
+      output[[paste0(tag,"_", 8, "_warning")]] <- renderUI({
+        req(frominput$entry)
+        render_severity_warning(tag, frominput$entry |> filter(path == 8))
+      })
   })
-  lapply(c(1:pathways_n), function(p){
-    output[[paste0("ENT2B_", p, "_warning")]] <- renderUI({
-      req(frominput$entry)
-      render_severity_warning("ENT2B", frominput$entry |> filter(path == p))
-    })
-  })
-  lapply(c(1:pathways_n), function(p){
-    output[[paste0("ENT3_", p, "_warning")]] <- renderUI({
-      req(frominput$entry)
-      render_severity_warning("ENT3", frominput$entry |> filter(path == p))
-    })
-  })
-  lapply(c(1:pathways_n), function(p){
-    output[[paste0("ENT4_", p, "_warning")]] <- renderUI({
-      req(frominput$entry)
-      render_severity_warning("ENT4", frominput$entry |> filter(path == p))
-    })
-  })
+  
+
   
 # Save Assessment ----
   ## Mark as finished and valid ----

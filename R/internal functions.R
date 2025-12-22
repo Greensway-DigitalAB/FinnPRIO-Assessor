@@ -69,59 +69,11 @@ render_quest_tab <- function(tag, qid, question,
   # Build data frame for DT: group_id (hidden), visible text, then checkboxes
   dt_data <- cbind(group_id = input_names, texts = texts, table_data)
   
-  
-  # colnames <- if (type == "minmax") {
-  #   c("Options", "Minimum", "Likely", "Maximum")
-  # } else {
-  #   c("Sub-questions, check the box if the answer is Yes", "Minimum", "Likely", "Maximum")
-  # }
-  
   colnames <- if (type == "minmax") {
     c("group_id", "Options", "Minimum", "Likely", "Maximum")
   } else {
     c("group_id", "Sub-questions, check the box if the answer is Yes", "Minimum", "Likely", "Maximum")
   }
-  
-  # JavaScript callback: conditional based on type
-  # js_callback <- if (type == "minmax") {
-  #   JS("
-  #     table.rows().every(function(i, tab, row) {
-  #       var $this = $(this.node());
-  #       $this.attr('id', this.data()[0]);
-  #       $this.addClass('shiny-input-checkboxgroup');
-  #     });
-  # 
-  #     Shiny.unbindAll(table.table().node());
-  #     Shiny.bindAll(table.table().node());
-  # 
-  #     var tableId = table.table().node().id || 'table_' + Math.random().toString(36).substr(2, 9);
-  #     var limits = { Minimum: 1, Likely: 1, Maximum: 1 };
-  # 
-  #     $('#' + tableId + ' input[type=checkbox]').off('change').on('change', function() {
-  #       var checkbox = this;
-  #       var value = checkbox.value;
-  # 
-  #       var totalChecked = $('#' + tableId + ' input[type=checkbox][value=' + value + ']:checked').length;
-  # 
-  #       if (totalChecked > limits[value]) {
-  #         console.warn('Limit reached for ' + value);
-  #         $(checkbox).prop('checked', false);
-  #       }
-  #     });
-  #   ")
-  # } else {
-  #   JS("
-  #     table.rows().every(function(i, tab, row) {
-  #       var $this = $(this.node());
-  #       $this.attr('id', this.data()[0]);
-  #       $this.addClass('shiny-input-checkboxgroup');
-  #     });
-  # 
-  #     Shiny.unbindAll(table.table().node());
-  #     Shiny.bindAll(table.table().node());
-  #   ")
-  # }
-  
   
   # JS: set row id = hidden group_id (this makes id == name)
   js_base <- "
