@@ -135,8 +135,8 @@ render_quest_tab <- function(tag, qid, question,
 }
 
 render_severity_warning <- function(groupTag, answers) {
-  severity_map <- c(a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9,
-                    j = 10, k = 11, l = 12, m = 13, n = 14, o = 15, p = 16, q = 17)
+  severity_map <- setNames(1:17, letters[1:17])
+  # c(a = 1, b = 2, c = 3, d = 4, e = 5, f = 6, g = 7, h = 8, i = 9, j = 10, k = 11, l = 12, m = 13, n = 14, o = 15, p = 16, q = 17)
   focal_ans <- answers |> 
     filter(question == groupTag) |> 
     select(minimum, likely, maximum) |> 
