@@ -133,6 +133,7 @@ server <- function(input, output, session) {
                               timeStamp = CURRENT_TIMESTAMP
                           WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
             dbStatus$data <- dbReadTable(con(), "dbStatus")
+            dbStatus$dibs <- TRUE
           } else {
             dbStatus$dibs <- FALSE
           }
@@ -221,25 +222,42 @@ server <- function(input, output, session) {
                        SET inUse = 1,
                            timeStamp = CURRENT_TIMESTAMP
                        WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
+          dbStatus$data <- dbReadTable(con(), "dbStatus")
           return(NULL)
         } else {
           # it is being used
-          shinyalert("Be careful", "It seems somebody else is using the database file. <br>
+          shinyalert(title = "Be careful", 
+                     text = "It seems somebody else is using the database file. <br>
                      Although it is ok to browse the data, it may get damaged or sessions may act weird if you proceed.<br>
-                     Do you want to proceed anyway?",
-                     "warning",
+                     Do you want to proceed and <strong>browse</strong> or <strong>unlock</strong> and use it?",
+                     type = "warning",
                      showConfirmButton = TRUE, showCancelButton = TRUE,
-                     confirmButtonText = "YES", cancelButtonText = "NO",
+                     confirmButtonText = "Browse", cancelButtonText = "Unlock",
                      timer = 0, animation = TRUE, html = TRUE,
                      callbackR = function(value) {
                        if (value) {
                          
                        } else {
-                         message("ending session due to simultaneous use")
-                         dbDisconnect(con())
-                         session$close()
+                         # message("ending session due to simultaneous use")
+                         # dbDisconnect(con())
+                         # session$close()
+                         dbExecute(con(), "UPDATE dbStatus
+                          SET inUse = 0,
+                              timeStamp = CURRENT_TIMESTAMP
+                          WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
+                         dbStatus$data <- dbReadTable(con(), "dbStatus")
+                         dbStatus$dibs <- TRUE
+                         
+                         print("inside")
+                         print(dbStatus$data)
+                         print(dbStatus$dibs)
                        }
+                       
                      })  # END if Value, callback, shinyAlert
+          
+          print("outside")
+          print(dbStatus$data)
+          print(dbStatus$dibs)
           
           disable("new_ass")
           disable("save_answers")
@@ -686,7 +704,8 @@ server <- function(input, output, session) {
                                 hr(style = "border-color: gray;")
                               )
                             }),
-                     h4("Pathways"),
+                     # h4("Pathways"),
+                     h3(strong("Pathways"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
                      uiOutput("questionariePath")
               
             )
@@ -921,10 +940,17 @@ server <- function(input, output, session) {
     req(assessments$entry)
 
     tabs <- lapply(names(assessments$entry), function(x){
-      tabPanel(id = x, 
-               title = pathways$data |>
-                 filter(idPathway == x) |>
-                 pull(name),
+      div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          
+          h4(strong(pathways$data |>
+                      filter(idPathway == x) |>
+                      pull(name)), 
+             style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+          tagList(
+      # tabPanel(id = x, 
+      #          title = pathways$data |>
+      #            filter(idPathway == x) |>
+      #            pull(name),
                 div(style = "margin: 20px;",
                     div(style = "display: flex; align-items: center; gap: 8px;",
                         h4(glue("ENT 2A: {questions$entry$question[1]}")),
@@ -1022,11 +1048,13 @@ server <- function(input, output, session) {
                                   height = '150px',
                                   resize = "vertical"),
                    tags$hr(style = "border-color: gray;")
-                )
-              )
+                ) # end div margin
+              ) # end tagList
+      ) # end div
     })
     
-    ui <- do.call(tabsetPanel, tabs)
+    # ui <- do.call(tabsetPanel, tabs)
+    ui <- tabs
     return(ui)
   })
   
