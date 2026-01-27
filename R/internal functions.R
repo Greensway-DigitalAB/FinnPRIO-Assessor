@@ -30,7 +30,7 @@ add_accordion_item <- function(accordion, title, content, info_id = NULL) {
 
   new_item <- div(
     id = new_id,
-    class = "panel",
+    # class = "panel",
     div(
       id = new_id_heading,
       class = paste0("panel-heading ", if (num_items > 1) "collapsed"),
@@ -41,9 +41,10 @@ add_accordion_item <- function(accordion, title, content, info_id = NULL) {
       `aria-expanded` = TRUE,
       `aria-controls` = new_id_collapse,
       h4(
-        class = "panel-title",
+        # class = "panel-title",
         if (!is.null(info_id)) actionLink(info_id, NULL,
-                                          icon = icon("info-circle", class = "fas"), class = "info-btn"),
+                                          icon = icon("info-circle", class = "fas"), 
+                                          class = "info-btn"),
         title
       )
     ),
