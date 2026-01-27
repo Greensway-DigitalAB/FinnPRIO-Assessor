@@ -148,7 +148,7 @@ server <- function(input, output, session) {
         quaran$data <- dbReadTable(con(), "quarantineStatus")
         pathways$data <- dbReadTable(con(), "pathways")
         pathways_n <- nrow(pathways$data)
-print(pathways_n)
+
         setProgress(.5)
         assessments$data <- dbReadTable(con(), "assessments")
         simulations$data <- dbReadTable(con(), "simulations")
