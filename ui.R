@@ -34,15 +34,34 @@ navbarPage("FinnPRIO-Assessor",
                                  title = uiOutput("selectedAssName"),
                                  br(),
                                  fluidRow(
-                                   tags$style(
-                                   HTML("
-                                       #save_answers {
-                                       position: fixed;
-                                       top: 315px;       /* Distance from top */
-                                       right: 20px;      /* Distance from right */
-                                       z-index: 1000;    /* Ensures it stays on top */
-                                       }")
-                                   ),
+                                   # tags$style(
+                                   # HTML("
+                                   #     #save_answers {
+                                   #     position: fixed;
+                                   #     top: 315px;       /* Distance from top */
+                                   #     right: 20px;      /* Distance from right */
+                                   #     z-index: 1000;    /* Ensures it stays on top */
+                                   #     }")
+                                   # ),
+                                   
+                                  tags$style(
+                                    HTML("
+                                      #save_answers {
+                                        position: fixed;
+                                        bottom: 40px; 
+                                        right: 20px;
+                                        z-index: 1000;
+                                        opacity: 0;              /* hidden initially */
+                                        transition: opacity 0.4s ease-in-out;
+                                        pointer-events: none;    /* not clickable when invisible */
+                                      }
+                                    
+                                      #save_answers.visible {
+                                        opacity: 1;
+                                        pointer-events: auto;    /* clickable when visible */
+                                      }
+                                    ")),
+                                   
                                    actionButton("save_answers", "Save Answers") #,
                                  ),
                                  uiOutput("questionarie")
@@ -75,7 +94,19 @@ navbarPage("FinnPRIO-Assessor",
              tags$head(
                tags$link(rel = "shortcut icon", href = "./img/bug-slash-solid-full-gray.svg"),
                # Include our custom CSS
-               tags$link(rel = "stylesheet", href = "styles.css")
+               tags$link(rel = "stylesheet", href = "styles.css"),
+               # save button appear when scrolling 
+               tags$script(HTML("
+                document.addEventListener('scroll', function() {
+                  var button = document.getElementById('save_answers');
+                  if (window.scrollY > 500) {        // threshold for showing button
+                    button.classList.add('visible');
+                  } else {
+                    button.classList.remove('visible');
+                  }
+                });
+               "))
+               
              ),
              
              fluidRow(
