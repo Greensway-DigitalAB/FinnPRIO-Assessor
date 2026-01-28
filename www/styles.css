@@ -47,3 +47,26 @@ h4.bubble:hover span {
     position: absolute;
     top: 10px;
 }
+
+
+.panel-heading {
+    padding: 5px 25px;
+    background: #F8F5F0;
+}
+
+.panel-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-title .chevron-indicator {
+      transition: transform 0.2s ease;
+      color: #666;
+      font-size: 0.9rem;
+    }
+    /* When the heading IS NOT collapsed (i.e., panel expanded), rotate chevron */
+    .panel-heading:not(.collapsed) .chevron-indicator {
+      transform: rotate(90deg);
+      color: #666;
+    }
+

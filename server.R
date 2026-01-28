@@ -133,6 +133,7 @@ server <- function(input, output, session) {
                               timeStamp = CURRENT_TIMESTAMP
                           WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
             dbStatus$data <- dbReadTable(con(), "dbStatus")
+            dbStatus$dibs <- TRUE
           } else {
             dbStatus$dibs <- FALSE
           }
@@ -221,30 +222,43 @@ server <- function(input, output, session) {
                        SET inUse = 1,
                            timeStamp = CURRENT_TIMESTAMP
                        WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
+          dbStatus$data <- dbReadTable(con(), "dbStatus")
           return(NULL)
         } else {
           # it is being used
-          shinyalert("Be careful", "It seems somebody else is using the database file. <br>
+          shinyalert(title = "Be careful", 
+                     text = "It seems somebody else is using the database file. <br>
                      Although it is ok to browse the data, it may get damaged or sessions may act weird if you proceed.<br>
-                     Do you want to proceed anyway?",
-                     "warning",
+                     Do you want to proceed and <strong>browse</strong> or <strong>unlock</strong> and use it?",
+                     type = "warning",
                      showConfirmButton = TRUE, showCancelButton = TRUE,
-                     confirmButtonText = "YES", cancelButtonText = "NO",
+                     confirmButtonText = "Browse", cancelButtonText = "Unlock",
+                     confirmButtonCol = "#3E3F3A", #cancelButtonCol = "#F8F5F0",
                      timer = 0, animation = TRUE, html = TRUE,
                      callbackR = function(value) {
                        if (value) {
-                         
+                         disable("new_ass")
+                         disable("save_answers")
+                         disable("save_general")
+                         # disable("save_sim")
                        } else {
-                         message("ending session due to simultaneous use")
-                         dbDisconnect(con())
-                         session$close()
+                         # message("ending session due to simultaneous use")
+                         # dbDisconnect(con())
+                         # session$close()
+                         dbExecute(con(), "UPDATE dbStatus
+                          SET inUse = 0,
+                              timeStamp = CURRENT_TIMESTAMP
+                          WHERE rowid = (SELECT MAX(rowid) FROM dbStatus);")
+                         dbStatus$data <- dbReadTable(con(), "dbStatus")
+                         dbStatus$dibs <- TRUE
                        }
+                       
                      })  # END if Value, callback, shinyAlert
-          
-          disable("new_ass")
-          disable("save_answers")
-          disable("save_general")
-          # disable("save_sim")
+
+          # disable("new_ass")
+          # disable("save_answers")
+          # disable("save_general")
+          # # disable("save_sim")
           
           tagList(
             h4("The database is being used by your colleage",  style = "color: red; font-weight: bold;")#,
@@ -641,12 +655,24 @@ server <- function(input, output, session) {
     if(is.null(assessments$selected)){
       ui <- NULL
     } else {
-      ui <- tagList(
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+      ui <- accordion_section("questAccordion")
+      # ui <- tagList(
+      ui <- add_accordion_item(
+        ui,
+        title = "General Information",
+        
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px; background: #F8F5F0;",
             h3(strong("General Information"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             uiOutput("assessment_summary"),
-          ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          ) 
+        )#,
+      
+      ui <- add_accordion_item(
+        ui,
+        title = "Entry",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",# background: #D0CDC0;",
             h3(strong("Entry"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             tagList(
                      lapply(1:nrow(quesEnt),
@@ -686,13 +712,19 @@ server <- function(input, output, session) {
                                 hr(style = "border-color: gray;")
                               )
                             }),
-                     h4("Pathways"),
+                     # h4("Pathways"),
+                     h4(strong("Entry Pathways"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
                      uiOutput("questionariePath")
               
             )
             # )
-        ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+        ) 
+        )#,
+      ui <- add_accordion_item(
+        ui,
+        title = "Establishment and Spread",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",# background: #A8A8AC;",
             h3(strong("Establishment and Spread"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             lapply(1:nrow(quesEst), 
                           function(x){
@@ -731,8 +763,13 @@ server <- function(input, output, session) {
                               hr(style = "border-color: gray;")
                             )
                           })
-          ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          ) 
+        )#,
+      ui <- add_accordion_item(
+        ui,
+        title = "Impact",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",# background: #9B9DA0;",
             h3(strong("Impact"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
                    lapply(1:nrow(quesImp),
                           function(x){
@@ -772,8 +809,13 @@ server <- function(input, output, session) {
                               hr(style = "border-color: gray;")
                             )
                           })
-          ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          ) 
+        )#,
+      ui <- add_accordion_item(
+        ui,
+        title = "Management",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",# background: #7C8286;",
             h3(strong("Management"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             lapply(1:nrow(quesMan),
                           function(x){
@@ -812,8 +854,13 @@ server <- function(input, output, session) {
                               hr(style = "border-color: gray;")
                             )
                           })
-          ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          ) 
+        )#,
+      ui <- add_accordion_item(
+        ui,
+        title = "References", 
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",
             h3(strong("References"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             br(),
                    textAreaInput("ass_reftext",
@@ -823,8 +870,13 @@ server <- function(input, output, session) {
                                  width = 'auto',
                                  height = '500px',
                                  resize = "both")
-          ),
-        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+          ) 
+        )#,
+      ui <- add_accordion_item(
+        ui,
+        title = "Simulations", #info_id = "sim_info",
+        div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+            border-radius: 8px;",
             h3(strong("Simulations"), style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
             tagList(
                      div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
@@ -872,21 +924,24 @@ server <- function(input, output, session) {
                      )
                    ),
                    fluidRow(
+                     column(12,
                       tagList(
                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
                                h4(strong("Results"), style = "color:#7C6A56"),
                                DTOutput("sim_results")
                            )
+                      )
                      )
                    )
-          )
+          ) 
+        )
         # )
-      )
+      # ) #
     } # end if(is.null(assessments$selected))
     
     return(ui)
   })
-  
+ 
   ### Control all inputs dynamically ----
   observe({
     req(questions$main)
@@ -921,10 +976,18 @@ server <- function(input, output, session) {
     req(assessments$entry)
 
     tabs <- lapply(names(assessments$entry), function(x){
-      tabPanel(id = x, 
-               title = pathways$data |>
-                 filter(idPathway == x) |>
-                 pull(name),
+      div(class = "card", style = glue("padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+          border-radius: 8px;  background: {unname(pathways_colors[x])};"),
+          
+          h4(strong(pathways$data |>
+                      filter(idPathway == x) |>
+                      pull(name)), 
+             style = "color:#7C6A56; background:#F8F5F0; padding:5px;"),
+          tagList(
+      # tabPanel(id = x, 
+      #          title = pathways$data |>
+      #            filter(idPathway == x) |>
+      #            pull(name),
                 div(style = "margin: 20px;",
                     div(style = "display: flex; align-items: center; gap: 8px;",
                         h4(glue("ENT 2A: {questions$entry$question[1]}")),
@@ -1022,11 +1085,13 @@ server <- function(input, output, session) {
                                   height = '150px',
                                   resize = "vertical"),
                    tags$hr(style = "border-color: gray;")
-                )
-              )
+                ) # end div margin
+              ) # end tagList
+      ) # end div
     })
     
-    ui <- do.call(tabsetPanel, tabs)
+    # ui <- do.call(tabsetPanel, tabs)
+    ui <- tabs
     return(ui)
   })
   

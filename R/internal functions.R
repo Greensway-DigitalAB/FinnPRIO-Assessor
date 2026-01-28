@@ -3,6 +3,71 @@ load_ui_content <- function(file) {
   source(file, local = TRUE)$value
 }
 
+#' Create a new accordion section
+#' @param id HTML ID of the new accordion section
+#' @return An accordion HTML tag
+accordion_section <- function(id) {
+  div(
+    id = id,
+    class = "panel-group",
+    role = "tablist",
+    `aria-multiselectable` = "true"
+  )
+}
+
+#' Add an item to an accordion section
+#' @param accordion An accordion HTML tag
+#' @param title Title for the new item's heading
+#' @param content HTML content for the new item
+#' @param info_id The Shiny input ID for an "info" icon beside the title
+#' @return An accordion HTML tag containing the new item
+add_accordion_item <- function(accordion, title, content, info_id = NULL) {
+  parent_id <- htmltools::tagGetAttribute(accordion, "id")
+  num_items <- length(accordion$children) + 1
+  new_id <- paste0(parent_id, "_", num_items)
+  new_id_heading <- paste0(new_id, "_heading")
+  new_id_collapse <- paste0(new_id, "_collapse")
+
+  new_item <- div(
+    id = new_id,
+    # class = "panel",
+    div(
+      id = new_id_heading,
+      # class = paste0("panel-heading ", if (num_items > 1) "collapsed"),
+      class = "panel-heading",
+      role = "tab",
+      `data-toggle` = "collapse",
+      `data-target` = paste0("#", new_id_collapse),
+      # `data-parent` = paste0("#", parent_id),
+      `aria-expanded` = TRUE,
+      `aria-controls` = new_id_collapse,
+      h4(
+        # class = "panel-title",
+        if (!is.null(info_id)) actionLink(info_id, NULL,
+                                          icon = icon("info-circle", class = "fas"), 
+                                          class = "info-btn"),
+        title, 
+        
+        # Chevron icon (Font Awesome). You can use any icon you prefer.
+        tags$i(class = "fas fa-chevron-right chevron-indicator", `aria-hidden` = "true")
+      )
+    ),
+    div(
+      id = new_id_collapse,
+      `aria-labelledby` = new_id_heading,
+      # class = paste0("panel-collapse collapse ", if (num_items == 1) "in"),
+      class = "panel-collapse collapse in",
+      role = "tabpanel",
+      div(
+        class = "panel-body",
+        content
+      )
+    )
+  )
+  accordion <- htmltools::tagAppendChild(accordion, new_item)
+  accordion
+}
+
 # Capitalize first letter, lowercase next two, keep rest as is
 capitalize_first <- function(x) {
   paste0(toupper(substr(x, 1, 1)), 
