@@ -924,11 +924,13 @@ server <- function(input, output, session) {
                      )
                    ),
                    fluidRow(
+                     column(12,
                       tagList(
                            div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
                                h4(strong("Results"), style = "color:#7C6A56"),
                                DTOutput("sim_results")
                            )
+                      )
                      )
                    )
           ) 
@@ -974,7 +976,8 @@ server <- function(input, output, session) {
     req(assessments$entry)
 
     tabs <- lapply(names(assessments$entry), function(x){
-      div(class = "card", style = "padding: 20px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px;",
+      div(class = "card", style = glue("padding: 20px; margin-top: 20px; border: 1px solid #ccc; 
+          border-radius: 8px;  background: {unname(pathways_colors[x])};"),
           
           h4(strong(pathways$data |>
                       filter(idPathway == x) |>

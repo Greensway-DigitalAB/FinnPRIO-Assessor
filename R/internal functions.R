@@ -33,11 +33,12 @@ add_accordion_item <- function(accordion, title, content, info_id = NULL) {
     # class = "panel",
     div(
       id = new_id_heading,
-      class = paste0("panel-heading ", if (num_items > 1) "collapsed"),
+      # class = paste0("panel-heading ", if (num_items > 1) "collapsed"),
+      class = "panel-heading",
       role = "tab",
       `data-toggle` = "collapse",
       `data-target` = paste0("#", new_id_collapse),
-      `data-parent` = paste0("#", parent_id),
+      # `data-parent` = paste0("#", parent_id),
       `aria-expanded` = TRUE,
       `aria-controls` = new_id_collapse,
       h4(
@@ -45,13 +46,17 @@ add_accordion_item <- function(accordion, title, content, info_id = NULL) {
         if (!is.null(info_id)) actionLink(info_id, NULL,
                                           icon = icon("info-circle", class = "fas"), 
                                           class = "info-btn"),
-        title
+        title, 
+        
+        # Chevron icon (Font Awesome). You can use any icon you prefer.
+        tags$i(class = "fas fa-chevron-right chevron-indicator", `aria-hidden` = "true")
       )
     ),
     div(
       id = new_id_collapse,
       `aria-labelledby` = new_id_heading,
-      class = paste0("panel-collapse collapse ", if (num_items == 1) "in"),
+      # class = paste0("panel-collapse collapse ", if (num_items == 1) "in"),
+      class = "panel-collapse collapse in",
       role = "tabpanel",
       div(
         class = "panel-body",
